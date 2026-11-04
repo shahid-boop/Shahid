@@ -1,34 +1,49 @@
 # Shahid Assistant — Windows 11
 
-A modular Windows desktop assistant built from the supplied architecture diagram.
+A modular Windows desktop assistant based on the supplied architecture diagram.
 
-## Current implementation
+## Implemented modules
 
-- Conversation runtime with bounded recent context and local persistent transcript
-- OpenAI-compatible chat provider (credentials supplied through environment variables)
-- Tkinter desktop chat HUD with explicit push-to-talk recording
-- OpenAI Whisper speech-to-text and OpenAI text-to-speech adapters
-- Localhost-only dashboard API
+- Conversation runtime with local persistent transcript and bounded recent context
+- OpenAI-compatible chat provider and Gemini text provider selection
+- Tkinter desktop chat HUD and separate settings window
+- Push-to-talk microphone capture, Whisper speech-to-text and text-to-speech adapters
+- Browser dashboard served on localhost with chat and status endpoints
 - Skill and plugin registries
 - Windows system health checks, allowlisted app detection/launch, and Settings page launcher
 - Workspace-scoped text file reading/creation and local video opening
-- Local reminders, web search, topic watchlist, one-shot proactive checks
-- Opt-in background health polling module
-- Unit tests and GitHub Actions workflow
+- Local reminders, opt-in Windows toast scheduler, web search and topic watchlist
+- On-demand screen capture and on-demand webcam still-photo capture
+- Opt-in background system health polling module
+- Unit tests and Windows GitHub Actions workflow
 
-Some diagram elements remain incomplete: Gemini Live session runtime, full settings UI, camera capture, robust plugin discovery/contracts, task scheduling/notifications, production-grade Windows automation, and end-to-end Windows validation.
+## Still incomplete / requires further work
+
+- Gemini Live real-time audio conversation session (the Gemini text provider is not Gemini Live)
+- Full-featured HUD overlay, animated/always-visible desktop widget and complete settings coverage
+- Production-grade Windows UI automation and permission/approval UX
+- Plugin package discovery, sandboxing and lifecycle management
+- Persistent task execution and robust scheduled topic monitoring
+- End-to-end validation on a real Windows 11 PC, including microphone, camera, GPU/audio drivers and API provider connectivity
 
 ## Requirements
 
 - Windows 11
 - Python 3.11+
-- An OpenAI API key for chat and cloud speech services
+- An API key for the selected cloud LLM provider
 - Microphone permission for push-to-talk
-- Optional internet connection for web search and provider calls
+- Optional webcam and internet connection for their respective features
 
 ## Install
 
 Open PowerShell in the repository directory:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\install.ps1
+```
+
+Or manually:
 
 ```powershell
 py -3.11 -m venv .venv
@@ -38,29 +53,29 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Edit `.env` and set `OPENAI_API_KEY` and `OPENAI_MODEL`. Never commit your real `.env` file.
+Edit `.env` and set either:
+- `OPENAI_API_KEY` and `OPENAI_MODEL` for `openai_compatible`, or
+- `GOOGLE_API_KEY` for `gemini`.
 
-The current provider reads environment variables directly. To load `.env` automatically, install/use python-dotenv in your launch environment or set the variables in PowerShell before starting.
+Never commit your real `.env` file. It is ignored by Git.
 
-```powershell
-$env:OPENAI_API_KEY="your-key"
-$env:OPENAI_MODEL="your-model"
-python main.py
-```
-
-Launch the desktop HUD:
+## Launch
 
 ```powershell
-python main.py --ui
+# Desktop chat HUD with push-to-talk voice
+.\run.ps1
+
+# Settings window
+.\.venv\Scripts\python.exe main.py --settings
+
+# Browser dashboard (open http://127.0.0.1:8765)
+.\.venv\Scripts\python.exe main.py --server
+
+# CLI with explicit opt-in reminder notifications
+.\.venv\Scripts\python.exe main.py --reminders
 ```
 
-Launch the local dashboard API:
-
-```powershell
-python main.py --server
-```
-
-The dashboard binds to `127.0.0.1:8765` only. It is not intended to be exposed to the public internet.
+Choose the engine in the settings window and restart the app after changing it. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
 
 ## CLI skills
 
@@ -69,25 +84,27 @@ The dashboard binds to `127.0.0.1:8765` only. It is not intended to be exposed t
 /skills
 /skill system_monitor {}
 /skill computer_settings {"page":"sound"}
-/skill reminders {"action":"add","text":"Call home","due_at":"2026-11-04T18:00:00+05:00"}
+/skill camera_capture {"output_path":"camera.png","device_index":0}
 ```
 
-Skills execute only when explicitly invoked. File tools are restricted to the local `workspace/` folder. File creation does not overwrite or delete existing files. Screen capture is explicit; it is not continuous. App launching uses an allowlist.
+Skills execute only when explicitly invoked. File tools are restricted to the local `workspace/` folder. File creation does not overwrite or delete existing files. Screen and camera capture are on-demand; they are not continuous. App launching uses an allowlist.
 
 ## Tests
 
 ```powershell
-python -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m compileall -q .
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-## Security notes
+## Security
 
-- Keep API keys in environment variables or a local ignored `.env` file.
-- Do not expose the dashboard server beyond localhost without adding authentication and TLS.
-- Review any operating-system automation before enabling it.
-- Microphone capture is push-to-talk, not always-on.
-- Background health monitoring is opt-in and must be started by the application/user.
+- Keep API keys in the local ignored `.env` file or environment variables.
+- Do not expose the dashboard beyond localhost without authentication and TLS.
+- Microphone recording is push-to-talk, not always-on.
+- Camera and screen capture require explicit skill invocation.
+- Reminder and health monitoring loops are opt-in.
+- File access is workspace-scoped; create operation never overwrites/deletes.
 
 ## Project status
 
-This is an active implementation, not yet a fully completed or verified release. The Gemini Live runtime, full Windows settings experience, camera workflow, dependable scheduled notifications, complete plugin lifecycle and end-to-end tests on a real Windows 11 machine remain to be implemented and verified.
+This is an active implementation and is not yet a completed, production-verified release. See the incomplete modules above. Windows 11 end-to-end testing and API credentials are still required before calling it complete.
