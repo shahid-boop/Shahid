@@ -32,6 +32,7 @@ def main() -> None:
     parser.add_argument("--ui", action="store_true", help="Launch the desktop chat HUD")
     parser.add_argument("--server", action="store_true", help="Launch the local dashboard API")
     parser.add_argument("--settings", action="store_true", help="Open assistant settings")
+    parser.add_argument("--reminders", action="store_true", help="Run opt-in reminder notifications")
     args = parser.parse_args()
 
     if args.settings:
@@ -66,6 +67,13 @@ def main() -> None:
         )
         launch(runtime.respond, voice)
         return
+
+    reminder_scheduler = None
+    if args.reminders:
+        from skills.reminder_scheduler import ReminderScheduler
+        reminder_scheduler = ReminderScheduler()
+        reminder_scheduler.start()
+        print("Reminder notifications enabled. Press Ctrl+C to stop.")
 
     print("CLI mode. Type /help for commands, /exit to quit.")
     while True:
