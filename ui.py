@@ -1,15 +1,16 @@
-"""Lightweight Tkinter HUD/chat interface."""
+"""Tkinter HUD/chat interface with optional push-to-talk voice."""
 from __future__ import annotations
 
 import threading
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
-from typing import Callable
+from tkinter import scrolledtext
+from typing import Callable, Any
 
 
 class AssistantWindow:
-    def __init__(self, respond: Callable[[str], str]) -> None:
+    def __init__(self, respond: Callable[[str], str], voice: Any = None) -> None:
         self.respond = respond
+        self.voice = voice
         self.root = tk.Tk()
         self.root.title("Shahid Assistant")
         self.root.geometry("760x560")
@@ -25,7 +26,12 @@ class AssistantWindow:
         self.entry.bind("<Return>", self._send_event)
         self.send_button = tk.Button(bottom, text="Send", command=self._send)
         self.send_button.pack(side=tk.RIGHT, padx=(8, 0))
-        self._append("System", "Assistant interface ready.")
+        self.voice_button = tk.Button(
+            bottom, text="Push to talk", command=self._voice,
+            state=tk.NORMAL if voice is not None else tk.DISABLED,
+        )
+        self.voice_button.pack(side=tk.RIGHT, padx=(8, 0))
+        self._append("System", "Assistant interface ready. Voice recording is push-to-talk only.")
 
     def _append(self, speaker: str, message: str) -> None:
         self.output.configure(state="normal")
@@ -36,13 +42,19 @@ class AssistantWindow:
     def _send_event(self, _event) -> None:
         self._send()
 
+    def _set_busy(self, busy: bool) -> None:
+        state = tk.DISABLED if busy else tk.NORMAL
+        self.send_button.configure(state=state)
+        if self.voice is not None:
+            self.voice_button.configure(state=state)
+
     def _send(self) -> None:
         message = self.entry.get().strip()
         if not message:
             return
         self.entry.delete(0, tk.END)
         self._append("You", message)
-        self.send_button.configure(state=tk.DISABLED)
+        self._set_busy(True)
 
         def work() -> None:
             try:
@@ -51,7 +63,27 @@ class AssistantWindow:
             except Exception as exc:
                 self.root.after(0, lambda: self._append("Error", str(exc)))
             finally:
-                self.root.after(0, lambda: self.send_button.configure(state=tk.NORMAL))
+                self.root.after(0, lambda: self._set_busy(False))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _voice(self) -> None:
+        if self.voice is None:
+            return
+        self._set_busy(True)
+        self._append("System", "Listening for 6 seconds…")
+
+        def work() -> None:
+            try:
+                heard = self.voice.listen_once()
+                self.root.after(0, lambda: self._append("You (voice)", heard))
+                answer = self.respond(heard)
+                self.root.after(0, lambda: self._append("Assistant", answer))
+                self.voice.speak(answer)
+            except Exception as exc:
+                self.root.after(0, lambda: self._append("Voice error", str(exc)))
+            finally:
+                self.root.after(0, lambda: self._set_busy(False))
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -59,9 +91,5 @@ class AssistantWindow:
         self.root.mainloop()
 
 
-def launch(respond: Callable[[str], str]) -> None:
-    try:
-        AssistantWindow(respond).run()
-    except tk.TclError as exc:
-        messagebox.showerror("Assistant UI", str(exc))
-        raise
+def launch(respond: Callable[[str], str], voice: Any = None) -> None:
+    AssistantWindow(respond, voice).run()
