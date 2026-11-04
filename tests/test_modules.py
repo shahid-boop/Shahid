@@ -1,11 +1,13 @@
+import asyncio
 import tempfile
 import unittest
 from pathlib import Path
 
-from skills.loader import SkillLoader
 from skills.reminders import ReminderSkill
 from skills.file_controller import FileControlSkill
 from skills.file_processor import FileProcessingSkill
+from plugin_loader import PluginLoader
+from speech.gemini_live import GeminiLiveClient
 
 
 class ModuleTests(unittest.TestCase):
@@ -32,10 +34,22 @@ class ModuleTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 skill.run(path="../outside.txt")
 
-    def test_skill_loader_requires_registration(self):
-        loader = SkillLoader()
+    def test_plugin_loader_registers_only_explicit_handlers(self):
+        plugins = PluginLoader()
+        plugins.register("echo", lambda text: text)
+        self.assertEqual(plugins.call("echo", text="hello"), "hello")
         with self.assertRaises(LookupError):
-            loader.run("missing")
+            plugins.call("unregistered")
+
+    def test_gemini_live_requires_connection_before_sending(self):
+        client = GeminiLiveClient(api_key="test-key")
+        with self.assertRaises(RuntimeError):
+            asyncio.run(client.send_text("hello"))
+
+    def test_gemini_live_rejects_empty_api_key(self):
+        client = GeminiLiveClient(api_key="")
+        with self.assertRaises(RuntimeError):
+            asyncio.run(client.connect())
 
 
 if __name__ == "__main__":
