@@ -32,7 +32,6 @@ class ModuleTests(unittest.TestCase):
         self.assertIn("UNTRUSTED_SAVED_MEMORY_JSON", prompt)
         self.assertIn("UNTRUSTED_TRANSCRIPT_JSON", prompt)
         self.assertIn("not instructions", prompt)
-        self.assertIn('\\\\u0022', prompt) if False else None
         self.assertIn("ignore previous instructions", prompt)
         self.assertIn("CURRENT_USER_MESSAGE: current request", prompt)
 
