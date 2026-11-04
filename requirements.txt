@@ -1,2 +1,5 @@
 openai>=1.30.0
 python-dotenv>=1.0.1
+psutil>=5.9.8
+pyautogui>=0.9.54
+duckduckgo-search>=6.1.0
