@@ -85,6 +85,28 @@ class GeminiLiveClient:
                 break
         return "".join(chunks).strip()
 
+    async def audio_turn(self, pcm16_bytes: bytes, sample_rate: int = 16000) -> tuple[str, bytes]:
+        """Send a recorded PCM16 utterance and collect Gemini Live text/audio output."""
+        if not pcm16_bytes:
+            raise ValueError("Audio input cannot be empty.")
+        await self.connect(response_modalities=("AUDIO",))
+        await self.send_audio(pcm16_bytes, sample_rate=sample_rate)
+        await self._session.send_realtime_input(audio_stream_end=True)
+        text_chunks: list[str] = []
+        audio_chunks: list[bytes] = []
+        async for message in self._session.receive():
+            if message.text:
+                text_chunks.append(message.text)
+            server_content = getattr(message, "server_content", None)
+            model_turn = getattr(server_content, "model_turn", None)
+            for part in getattr(model_turn, "parts", []) or []:
+                inline_data = getattr(part, "inline_data", None)
+                if inline_data and getattr(inline_data, "data", None):
+                    audio_chunks.append(inline_data.data)
+            if getattr(server_content, "turn_complete", False):
+                break
+        return "".join(text_chunks).strip(), b"".join(audio_chunks)
+
     async def receive(self, on_text: Callable[[str], Any] | None = None,
                       on_audio: Callable[[bytes], Any] | None = None,
                       stop_event: asyncio.Event | None = None) -> None:
