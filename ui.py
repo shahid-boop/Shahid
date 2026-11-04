@@ -107,6 +107,7 @@ class AssistantWindow:
 
                 async def request_live(pcm: bytes):
                     client = GeminiLiveClient(
+                        model=self.config.get("gemini_live_model") or None,
                         system_instruction=self.config.get(
                             "system_prompt",
                             "You are Shahid Assistant, a helpful Windows desktop assistant.",
