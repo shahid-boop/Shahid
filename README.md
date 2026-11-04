@@ -13,7 +13,7 @@ A modular Windows desktop assistant based on the supplied architecture diagram.
 - Skill and plugin registries
 - Windows system health checks, allowlisted app detection/launch, and Settings page launcher
 - Workspace-scoped text file reading/creation and local video opening
-- Local reminders, opt-in Windows toast scheduler, web search, topic watchlist and scheduled topic polling\n- Durable local task queue with claim/complete/fail/retry lifecycle
+- Local reminders, opt-in Windows toast scheduler, web search, topic watchlist and scheduled topic polling\n- Durable local task queue with claim/complete/fail/retry lifecycle and an opt-in worker for explicitly registered task handlers
 - On-demand screen capture and on-demand webcam still-photo capture
 - Opt-in background system health polling module
 - Unit tests and Windows GitHub Actions workflow
