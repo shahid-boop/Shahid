@@ -1,6 +1,9 @@
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from desktop.control import click_or_type
 from monitoring.topic_monitor import TopicMonitor
@@ -15,7 +18,7 @@ class OptionalDiagramTests(unittest.TestCase):
             "entrypoint": "plugin.py",
             "signature": "00",
         }
-        # This must fail closed whether the optional crypto package is installed or not.
+        # Fail closed whether the optional crypto package is installed or not.
         with self.assertRaises(PluginError):
             verify_manifest(manifest, "00" * 32)
 
@@ -30,8 +33,11 @@ class OptionalDiagramTests(unittest.TestCase):
                 )
 
     def test_desktop_control_rejects_unknown_action(self):
-        with self.assertRaises(ValueError):
-            click_or_type({"action": "shell", "command": "whoami"})
+        # Mock the optional GUI dependency so this test checks action validation,
+        # without requiring PyAutoGUI on the minimal CI runner.
+        with patch.dict(sys.modules, {"pyautogui": types.ModuleType("pyautogui")}):
+            with self.assertRaises(ValueError):
+                click_or_type({"action": "shell", "command": "whoami"})
 
 
 if __name__ == "__main__":
