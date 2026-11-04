@@ -12,7 +12,7 @@ class SettingsWindow:
         self.config = load_config()
         self.root = tk.Tk()
         self.root.title("Shahid Assistant Settings")
-        self.root.geometry("440x360")
+        self.root.geometry("460x400")
         self.root.resizable(False, False)
 
         frame = ttk.Frame(self.root, padding=16)
@@ -37,10 +37,14 @@ class SettingsWindow:
         self.seconds = tk.IntVar(value=int(self.config.get("voice_record_seconds", 6)))
         ttk.Spinbox(frame, from_=2, to=20, textvariable=self.seconds, width=8).grid(row=4, column=1, sticky="w", pady=6)
 
+        ttk.Label(frame, text="Gemini Live model").grid(row=5, column=0, sticky="w", pady=6)
+        self.live_model = tk.StringVar(value=self.config.get("gemini_live_model", "gemini-live-2.5-flash-preview"))
+        ttk.Entry(frame, textvariable=self.live_model, width=34).grid(row=5, column=1, sticky="ew", pady=6)
+
         self.topmost = tk.BooleanVar(value=bool(self.config.get("always_on_top", True)))
-        ttk.Checkbutton(frame, text="Keep assistant HUD always on top", variable=self.topmost).grid(row=5, column=0, columnspan=2, sticky="w", pady=6)
-        ttk.Label(frame, text="API key is read from environment/.env; never stored here.", wraplength=390).grid(row=6, column=0, columnspan=2, sticky="w", pady=10)
-        ttk.Button(frame, text="Save settings", command=self.save).grid(row=7, column=1, sticky="e", pady=8)
+        ttk.Checkbutton(frame, text="Keep assistant HUD always on top", variable=self.topmost).grid(row=6, column=0, columnspan=2, sticky="w", pady=6)
+        ttk.Label(frame, text="API key is read from environment/.env; never stored here.", wraplength=410).grid(row=7, column=0, columnspan=2, sticky="w", pady=10)
+        ttk.Button(frame, text="Save settings", command=self.save).grid(row=8, column=1, sticky="e", pady=8)
         frame.columnconfigure(1, weight=1)
 
     def save(self):
@@ -54,6 +58,7 @@ class SettingsWindow:
             "base_url": self.base_url.get().strip(),
             "voice_record_seconds": max(2, min(20, self.seconds.get())),
             "always_on_top": self.topmost.get(),
+            "gemini_live_model": self.live_model.get().strip() or "gemini-live-2.5-flash-preview",
         })
         save_config(self.config)
         messagebox.showinfo("Saved", "Settings saved. Restart the assistant to apply them.")
