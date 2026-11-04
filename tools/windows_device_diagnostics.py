@@ -1,7 +1,6 @@
 """Run on the target Windows 11 PC to verify local devices and credentials."""
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 import platform
@@ -19,7 +18,7 @@ def main() -> int:
     if platform.system() != "Windows":
         report["checks"]["windows_11"] = {"ok": False, "detail": "Run this script on Windows 11."}
     else:
-        report["checks"]["windows_11"] = {"ok": platform.release() == "11" or platform.version().startswith("10.0.2"), "detail": platform.version()}
+        report["checks"]["windows_11"] = {"ok": platform.release() == "11" or int(platform.version().split(".")[-1]) >= 22000, "detail": platform.version()}
 
     try:
         import sounddevice as sd
@@ -54,8 +53,8 @@ def main() -> int:
     except Exception as exc:
         report["checks"]["camera"] = {"ok": False, "detail": str(exc)}
 
-    report["checks"]["openai_api_key"] = {"ok": bool(os.getenv("OPENAI_API_KEY"))}
-    report["checks"]["google_api_key"] = {"ok": bool(os.getenv("GOOGLE_API_KEY"))}
+    credentials = bool(os.getenv("OPENAI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
+    report["checks"]["provider_credentials"] = {"ok": credentials, "detail": "At least one provider key is configured." if credentials else "Set OPENAI_API_KEY or GOOGLE_API_KEY in the environment."}
     report["checks"]["docker_sandbox"] = {"ok": False, "detail": "Not checked by this diagnostic; run docker info."}
     try:
         import shutil
