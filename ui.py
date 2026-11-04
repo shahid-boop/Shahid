@@ -74,9 +74,7 @@ class AssistantWindow:
 
     def _append(self, speaker: str, message: str) -> None:
         self.output.configure(state="normal")
-        self.output.insert(tk.END, f"{speaker}: {message}
-
-")
+        self.output.insert(tk.END, f"{speaker}: {message}\n\n")
         self.output.see(tk.END)
         self.output.configure(state="disabled")
 
