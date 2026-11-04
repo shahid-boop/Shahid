@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 
 from dotenv import load_dotenv
@@ -28,12 +29,46 @@ def build_runtime(config: dict) -> AssistantRuntime:
     )
 
 
+
+async def run_gemini_live_cli(config: dict) -> None:
+    from speech.gemini_live import GeminiLiveClient
+
+    client = GeminiLiveClient(
+        model=config.get("gemini_live_model") or None,
+        system_instruction=config.get(
+            "system_prompt",
+            "You are Shahid Assistant, a helpful Windows desktop AI assistant.",
+        ),
+    )
+    await client.connect(response_modalities=("TEXT",))
+    print("Gemini Live text session ready. Type /exit to disconnect.")
+    try:
+        while True:
+            try:
+                message = input("You> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            if message.lower() in {"/exit", "/quit"}:
+                break
+            if not message:
+                continue
+            try:
+                answer = await client.text_turn(message)
+                print(f"Gemini Live> {answer or '[No text returned]'}")
+            except Exception as exc:
+                print(f"Gemini Live error> {exc}")
+    finally:
+        await client.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Shahid Assistant")
     parser.add_argument("--ui", action="store_true", help="Launch the desktop chat HUD")
     parser.add_argument("--server", action="store_true", help="Launch the local dashboard API")
     parser.add_argument("--settings", action="store_true", help="Open assistant settings")
     parser.add_argument("--reminders", action="store_true", help="Enable reminder notifications")
+    parser.add_argument("--gemini-live", action="store_true", help="Start a Gemini Live text session")
     args = parser.parse_args()
 
     if args.settings:
@@ -42,6 +77,9 @@ def main() -> None:
         return
 
     config = load_config()
+    if args.gemini_live:
+        asyncio.run(run_gemini_live_cli(config))
+        return
     runtime = build_runtime(config)
     print(f"{config['assistant_name']} starting...")
 
