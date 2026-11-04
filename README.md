@@ -92,7 +92,7 @@ The HUD's **Start Live Voice** control opens a continuous Gemini Live audio sess
 /skill agent_tasks {"action":"list"}
 ```
 
-Run `main.py --run-tasks` to execute queued tasks of registered kinds. Currently the worker registers only `web_search`. Unknown task kinds fail closed. Manual tasks remain stored until explicitly handled.
+Run `main.py --run-tasks` to execute queued tasks of registered kinds. Currently the worker registers only `web_search`. Unknown task kinds remain queued and are not executed. Manual tasks remain stored until explicitly handled.
 
 ## Safety boundaries
 
