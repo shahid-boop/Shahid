@@ -1,0 +1,4 @@
+# Optional explicit camera and screen capture
+mss>=9,<11
+Pillow>=10,<12
+opencv-python>=4.9,<5
