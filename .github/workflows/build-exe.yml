@@ -31,7 +31,18 @@ jobs:
 
       - name: Build desktop application
         shell: cmd
-        run: build_windows.bat
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed ^
+            --name ShahidAssistant ^
+            --add-data ".env.example;." ^
+            --collect-submodules skills ^
+            --collect-submodules providers ^
+            --collect-submodules monitoring ^
+            --collect-submodules plugins ^
+            --collect-submodules realtime ^
+            --collect-submodules speech ^
+            --collect-submodules vision ^
+            main.py
 
       - name: Verify executable exists
         shell: pwsh
