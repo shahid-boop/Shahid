@@ -12,10 +12,12 @@ class AssistantWindow:
     def __init__(self, respond: Callable[[str], str], voice: Any = None, config: dict | None = None) -> None:
         self.respond = respond
         self.voice = voice
+        self.config = config or {}
         self.root = tk.Tk()
         self.root.title("Shahid Assistant")
         self.root.geometry("760x560")
         self.root.minsize(520, 380)
+        self.root.attributes("-topmost", bool(self.config.get("always_on_top", True)))
 
         self.output = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, state="disabled")
         self.output.pack(fill=tk.BOTH, expand=True, padx=12, pady=(12, 8))
