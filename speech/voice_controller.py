@@ -21,6 +21,33 @@ class WindowsVoiceController:
         self.stt = WhisperSpeechToText()
         self.tts = OpenAITextToSpeech()
 
+    def record_pcm_once(self) -> bytes:
+        """Record a fixed-length PCM16 utterance after explicit UI invocation."""
+        try:
+            import sounddevice as sd
+        except ImportError as exc:
+            raise RuntimeError("Install sounddevice to enable microphone input.") from exc
+        recording = sd.rec(
+            int(self.seconds * self.sample_rate),
+            samplerate=self.sample_rate,
+            channels=1,
+            dtype="int16",
+        )
+        sd.wait()
+        return recording.tobytes()
+
+    def play_pcm(self, pcm16_bytes: bytes, sample_rate: int = 24000) -> None:
+        """Play a PCM16 audio response through the default output device."""
+        if not pcm16_bytes:
+            return
+        try:
+            import sounddevice as sd
+            import numpy as np
+        except ImportError as exc:
+            raise RuntimeError("Install sounddevice and numpy for PCM playback.") from exc
+        audio = np.frombuffer(pcm16_bytes, dtype=np.int16)
+        sd.play(audio, samplerate=int(sample_rate), blocking=True)
+
     def listen_once(self) -> str:
         if not os.getenv("OPENAI_API_KEY"):
             raise RuntimeError("OPENAI_API_KEY is not configured.")
