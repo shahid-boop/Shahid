@@ -6,10 +6,10 @@ A modular Windows desktop assistant with chat, voice, local skills, task handlin
 
 - OpenAI-compatible and Gemini text providers with local persistent conversation memory
 - Gemini Live continuous microphone input and streaming speaker output, with an explicit stop control
-- Tkinter desktop HUD with always-on-top, compact and right-docked layouts
+- Animated Tkinter desktop HUD with pulsing assistant orb, moving waveform, live status, always-on-top, compact and right-docked layouts
 - Push-to-talk Whisper transcription and text-to-speech
 - Localhost-only browser dashboard
-- Explicit skill and trusted plugin registries
+- Explicit skill and trusted plugin registries; optional Docker-isolated third-party Python plugin execution
 - Windows health checks, Settings launcher, allowlisted app launch and individually confirmed UI actions
 - Workspace-scoped file tools, on-demand screen capture and webcam still photos
 - Local reminders, opt-in Windows notifications and health polling
@@ -72,7 +72,7 @@ Set either `OPENAI_API_KEY` and `OPENAI_MODEL`, or `GOOGLE_API_KEY` in the local
 .\.venv\Scripts\python.exe main.py --gemini-live
 ```
 
-The HUD's **Start Live Voice** control opens a continuous Gemini Live audio session. **Stop Live Voice** interrupts playback and disconnects. This requires `GOOGLE_API_KEY`, `google-genai`, `sounddevice`, a microphone and speakers. Acoustic echo cancellation and voice-activity barge-in detection are not implemented; use the stop control to interrupt.
+The HUD's **Start Live Voice** control opens a continuous Gemini Live audio session. **Stop Live Voice** interrupts playback and disconnects. This requires `GOOGLE_API_KEY`, `google-genai`, `sounddevice`, a microphone and speakers. Echo reduction uses an adaptive NLMS filter when a WASAPI loopback input is exposed by PortAudio. Voice-activity barge-in detection clears queued assistant playback when the microphone captures speech. Device support, tuning and false-interrupt behavior must be validated on the target PC; the manual Stop control remains available.
 
 ## CLI skills
 
@@ -94,6 +94,14 @@ The HUD's **Start Live Voice** control opens a continuous Gemini Live audio sess
 
 Run `main.py --run-tasks` to execute queued tasks of registered kinds. Currently the worker registers only `web_search`. Unknown task kinds remain queued and are not executed. Manual tasks remain stored until explicitly handled.
 
+## Third-party plugin sandbox
+
+Install and start Docker Desktop using Linux containers. The built-in `sandbox_python` plugin runs submitted Python code in a short-lived container with networking disabled, read-only root filesystem, dropped Linux capabilities, no-new-privileges, PID/memory/CPU limits, an unprivileged UID and a small temporary filesystem. It receives only JSON input over stdin and has no host-folder mounts. The Docker daemon and host kernel remain trusted; this is defense-in-depth, not a guarantee against every container escape. Example CLI call:
+
+```text
+/plugin sandbox_python {"source":"def run(payload): return {'message': payload['message']}","payload":{"message":"hello"}}
+```
+
 ## Safety boundaries
 
 - Plugins are registered explicitly and run in-process. Arbitrary third-party plugin discovery/import and OS-level sandboxing are **not** enabled. Register only code you trust.
@@ -103,6 +111,16 @@ Run `main.py --run-tasks` to execute queued tasks of registered kinds. Currently
 - Background reminders, health polling, topic polling and task processing are opt-in.
 - The dashboard binds to loopback. Do not expose it publicly without authentication and TLS.
 - API keys belong in the ignored local `.env` file or environment variables.
+
+## Target-device diagnostics
+
+After installing dependencies and configuring the API key in your local environment, run this on the Windows 11 PC:
+
+```powershell
+.\\.venv\\Scripts\\python.exe tools\\windows_device_diagnostics.py
+```
+
+It reports microphone/speaker enumeration, default camera capture, API-key presence and Docker availability. It does not print secret values or send API requests. Run a separate short Live Voice session to validate Gemini credentials and real-time audio round-trip.
 
 ## Tests
 
