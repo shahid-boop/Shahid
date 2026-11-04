@@ -8,7 +8,9 @@ from skills.file_controller import FileControlSkill
 from skills.file_processor import FileProcessingSkill
 from plugin_loader import PluginLoader
 from assistant_runtime import AssistantRuntime, Turn
-from speech.gemini_live import GeminiLiveClient\nfrom skills.agent_tasks import AgentTasksSkill\nfrom skills.topic_poll_scheduler import TopicPollingScheduler
+from speech.gemini_live import GeminiLiveClient
+from skills.agent_tasks import AgentTasksSkill
+from skills.topic_poll_scheduler import TopicPollingScheduler
 
 
 class ModuleTests(unittest.TestCase):
