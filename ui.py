@@ -102,27 +102,28 @@ class AssistantWindow:
         self._append("System", "Gemini Live: recording one utterance. Check microphone permission.")
 
         def work() -> None:
-            client = None
             try:
                 from speech.gemini_live import GeminiLiveClient
-                pcm = self.voice.record_pcm_once()
-                client = GeminiLiveClient(
-                    system_instruction=self.config.get(
-                        "system_prompt",
-                        "You are Shahid Assistant, a helpful Windows desktop assistant.",
+
+                async def request_live(pcm: bytes):
+                    client = GeminiLiveClient(
+                        system_instruction=self.config.get(
+                            "system_prompt",
+                            "You are Shahid Assistant, a helpful Windows desktop assistant.",
+                        )
                     )
-                )
-                heard, audio = asyncio.run(client.audio_turn(pcm, self.voice.sample_rate))
+                    try:
+                        return await client.audio_turn(pcm, self.voice.sample_rate)
+                    finally:
+                        await client.close()
+
+                pcm = self.voice.record_pcm_once()
+                heard, audio = asyncio.run(request_live(pcm))
                 self.root.after(0, lambda text=heard: self._append("Gemini Live", text or "[Audio response received]"))
                 self.voice.play_pcm(audio, sample_rate=24000)
             except Exception as exc:
                 self.root.after(0, lambda error=str(exc): self._append("Gemini Live error", error))
             finally:
-                if client is not None:
-                    try:
-                        asyncio.run(client.close())
-                    except Exception:
-                        pass
                 self.root.after(0, lambda: self._set_busy(False))
 
         threading.Thread(target=work, daemon=True).start()
