@@ -72,6 +72,19 @@ class GeminiLiveClient:
             video=types.Blob(data=jpeg_bytes, mime_type="image/jpeg")
         )
 
+    async def text_turn(self, text: str) -> str:
+        """Send one text turn through a connected Live session and return its text."""
+        self._require_session()
+        await self.send_text(text)
+        chunks: list[str] = []
+        async for message in self._session.receive():
+            if message.text:
+                chunks.append(message.text)
+            server_content = getattr(message, "server_content", None)
+            if getattr(server_content, "turn_complete", False):
+                break
+        return "".join(chunks).strip()
+
     async def receive(self, on_text: Callable[[str], Any] | None = None,
                       on_audio: Callable[[bytes], Any] | None = None,
                       stop_event: asyncio.Event | None = None) -> None:
