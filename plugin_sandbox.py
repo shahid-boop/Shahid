@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import threading
 from typing import Any
 
 
@@ -83,20 +84,47 @@ class DockerPluginSandbox:
             "--user=65534:65534",
             self.image, "python", "-I", "-c", runner,
         ]
+        process = None
+        stdout_data = bytearray()
+        stderr_data = bytearray()
+        overflow = threading.Event()
+        def drain(pipe, target, limit):
+            while True:
+                chunk = pipe.read(4096)
+                if not chunk:
+                    break
+                if len(target) + len(chunk) > limit:
+                    overflow.set()
+                    if process is not None:
+                        process.kill()
+                    break
+                target.extend(chunk)
         try:
-            completed = subprocess.run(
-                command, input=envelope, capture_output=True, text=True,
-                timeout=self.timeout_seconds, check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise PluginSandboxError("Plugin exceeded its execution time limit.") from exc
+            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out_thread = threading.Thread(target=drain, args=(process.stdout, stdout_data, self.max_output_bytes), daemon=True)
+            err_thread = threading.Thread(target=drain, args=(process.stderr, stderr_data, 4000), daemon=True)
+            out_thread.start()
+            err_thread.start()
+            process.stdin.write(envelope.encode('utf-8'))
+            process.stdin.close()
+            try:
+                return_code = process.wait(timeout=self.timeout_seconds)
+            except subprocess.TimeoutExpired as exc:
+                process.kill()
+                process.wait()
+                raise PluginSandboxError('Plugin exceeded its execution time limit.') from exc
+            out_thread.join(timeout=1)
+            err_thread.join(timeout=1)
         except OSError as exc:
-            raise PluginSandboxError(f"Could not start Docker sandbox: {exc}") from exc
-
-        output = completed.stdout[-self.max_output_bytes:]
-        if completed.returncode != 0:
-            detail = completed.stderr[-4000:].strip()
-            raise PluginSandboxError(detail or f"Sandbox exited with code {completed.returncode}.")
+            if process is not None:
+                process.kill()
+            raise PluginSandboxError(f'Could not start Docker sandbox: {exc}') from exc
+        if overflow.is_set():
+            raise PluginSandboxError('Plugin exceeded the output size limit.')
+        output = stdout_data.decode('utf-8', errors='replace')
+        if return_code != 0:
+            detail = stderr_data.decode('utf-8', errors='replace').strip()
+            raise PluginSandboxError(detail or f'Sandbox exited with code {return_code}.')
         try:
             result = json.loads(output.strip().splitlines()[-1])
         except (ValueError, IndexError) as exc:
