@@ -19,7 +19,17 @@ class AssistantWindow:
         self.root.minsize(520, 380)
         self.root.attributes("-topmost", bool(self.config.get("always_on_top", True)))
 
-        self.output = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, state="disabled")
+        self.root.configure(bg="#101827")
+        self._animation_phase = 0
+        self._hud_status = "READY"
+        self.visual = tk.Canvas(self.root, height=104, bg="#101827", highlightthickness=0)
+        self.visual.pack(fill=tk.X, padx=12, pady=(10, 0))
+        self._draw_hud()
+        self.output = scrolledtext.ScrolledText(
+            self.root, wrap=tk.WORD, state="disabled",
+            bg="#172235", fg="#e5edf8", insertbackground="#ffffff",
+            relief=tk.FLAT, borderwidth=0, padx=12, pady=10,
+        )
         self.output.pack(fill=tk.BOTH, expand=True, padx=12, pady=(12, 8))
 
         bottom = tk.Frame(self.root)
@@ -47,6 +57,38 @@ class AssistantWindow:
         self._live_stop = None
         self._live_session = None
         self._append("System", "Assistant interface ready. Voice recording is push-to-talk only until Live Voice is explicitly started.")
+        self.root.protocol("WM_DELETE_WINDOW", self._close)
+        self._animate_hud()
+
+    def _draw_hud(self) -> None:
+        self.visual.delete("all")
+        width = max(self.visual.winfo_width(), 520)
+        center_x, center_y = 54, 51
+        phase = self._animation_phase
+        radius = 18 + (phase % 12)
+        self.visual.create_oval(center_x-radius, center_y-radius, center_x+radius, center_y+radius, outline="#284a70", width=2)
+        self.visual.create_oval(center_x-17, center_y-17, center_x+17, center_y+17, fill="#163e61", outline="#56c8ff", width=2)
+        self.visual.create_oval(center_x-7, center_y-7, center_x+7, center_y+7, fill="#a8e8ff", outline="")
+        self.visual.create_text(100, 39, anchor="w", text="SHAHID  /  AI ASSISTANT", fill="#e5edf8", font=("Segoe UI", 12, "bold"))
+        self.visual.create_text(100, 65, anchor="w", text=self._hud_status, fill="#70d6ff", font=("Segoe UI", 9, "bold"))
+        for index in range(28):
+            bar_height = 3 + ((index * 7 + phase * 3) % 13)
+            x = width - 18 - index * 8
+            self.visual.create_line(x, center_y + bar_height, x, center_y - bar_height, fill="#245b83", width=2)
+
+    def _animate_hud(self) -> None:
+        if not self.root.winfo_exists():
+            return
+        self._animation_phase = (self._animation_phase + 1) % 120
+        self._draw_hud()
+        self.root.after(70, self._animate_hud)
+
+    def _close(self) -> None:
+        if self._live_stop is not None:
+            self._live_stop.set()
+            if self._live_session is not None:
+                self._live_session.stop()
+        self.root.destroy()
 
     def _toggle_compact(self) -> None:
         self._compact = not self._compact
@@ -82,6 +124,7 @@ class AssistantWindow:
         self._send()
 
     def _set_busy(self, busy: bool) -> None:
+        self._hud_status = "THINKING" if busy else "READY"
         state = tk.DISABLED if busy else tk.NORMAL
         self.send_button.configure(state=state)
         if self.voice is not None:
@@ -154,6 +197,7 @@ class AssistantWindow:
         )
         session = LiveVoiceSession(client, sample_rate=self.voice.sample_rate)
         self._live_session = session
+        self._hud_status = "LIVE VOICE"
         self.live_button.configure(text="Stop Live Voice", state=tk.NORMAL)
         self._append("System", "Live microphone and speaker streaming started. Press Stop Live Voice to interrupt and disconnect.")
 
@@ -166,6 +210,7 @@ class AssistantWindow:
                 def finished():
                     self._live_stop = None
                     self._live_session = None
+                    self._hud_status = "READY"
                     self.live_button.configure(text="Start Live Voice", state=tk.NORMAL)
                     self._append("System", "Live Voice stopped.")
                 self.root.after(0, finished)
