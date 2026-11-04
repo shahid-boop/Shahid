@@ -9,6 +9,7 @@ from skills.file_processor import FileProcessingSkill
 from plugin_loader import PluginLoader
 from assistant_runtime import AssistantRuntime, Turn
 from speech.gemini_live import GeminiLiveClient
+from speech.live_voice import AdaptiveEchoCanceller
 from skills.agent_tasks import AgentTasksSkill
 from skills.topic_poll_scheduler import TopicPollingScheduler
 from skills.agent_task_worker import AgentTaskWorker
@@ -123,6 +124,14 @@ class ModuleTests(unittest.TestCase):
             self.assertEqual(store.run(action="list")[0]["id"], item["id"])
             self.assertEqual(store.run(action="list")[0]["status"], "queued")
 
+    def test_echo_canceller_returns_finite_pcm_output(self):
+        import numpy as np
+        canceller = AdaptiveEchoCanceller(taps=16)
+        reference = (np.sin(np.arange(320) * 0.08) * 10000).astype(np.int16)
+        microphone = (reference * 0.5).astype(np.int16)
+        output, rms = canceller.process(microphone.tobytes(), reference.tobytes())
+        self.assertEqual(len(output), len(microphone.tobytes()))
+        self.assertTrue(np.isfinite(rms))
     def test_topic_scheduler_rejects_aggressive_polling(self):
         with self.assertRaises(ValueError):
             TopicPollingScheduler(interval_seconds=30)
