@@ -8,6 +8,7 @@ A modular Windows desktop assistant based on the supplied architecture diagram.
 - OpenAI-compatible chat provider, Gemini text provider, and a Gemini Live session mode
 - Tkinter desktop chat HUD with configurable always-on-top behavior and separate settings window
 - Push-to-talk microphone capture, Whisper speech-to-text and text-to-speech adapters
+- Gemini Live audio-turn button in the desktop HUD (recorded PCM input and spoken PCM output; requires a Gemini API key)
 - Browser dashboard served on localhost with chat and status endpoints
 - Skill and plugin registries
 - Windows system health checks, allowlisted app detection/launch, and Settings page launcher
@@ -75,7 +76,7 @@ Never commit your real `.env` file. It is ignored by Git.
 .\.venv\Scripts\python.exe main.py --reminders
 ```
 
-Choose the engine in the settings window and restart the app after changing it. The HUD can be kept always on top from Settings. Gemini Live text mode uses the separate `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL` settings: `python main.py --gemini-live`. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
+Choose the engine in the settings window and restart the app after changing it. The HUD can be kept always on top from Settings. The **Gemini Live** HUD button records one utterance and returns a spoken answer; it is not yet a continuously streaming, interruptible full-duplex voice session. Gemini Live text mode uses the separate `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL` settings: `python main.py --gemini-live`. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
 
 ## CLI skills
 
