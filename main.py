@@ -74,7 +74,7 @@ def main() -> None:
     parser.add_argument("--server", action="store_true", help="Launch the local dashboard API")
     parser.add_argument("--settings", action="store_true", help="Open assistant settings")
     parser.add_argument("--reminders", action="store_true", help="Enable reminder notifications")
-    parser.add_argument("--monitor", action="store_true", help="Enable opt-in background health monitoring")
+    parser.add_argument("--monitor", action="store_true", help="Enable opt-in background health monitoring")\n    parser.add_argument("--watch-topics", action="store_true", help="Enable opt-in scheduled topic polling")
     parser.add_argument("--gemini-live", action="store_true", help="Start a Gemini Live text session")
     args = parser.parse_args()
 
