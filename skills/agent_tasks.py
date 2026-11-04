@@ -49,7 +49,12 @@ class AgentTasksSkill(Skill):
                 value = task.strip()
                 if not value:
                     raise ValueError("Task description is required.")
-                item = {"id": uuid.uuid4().hex, "task": value, "status": "queued",
+                kind = str(arguments.get("kind", "manual")).strip()
+                payload = arguments.get("payload", {})
+                if not kind or len(kind) > 80 or not isinstance(payload, dict):
+                    raise ValueError("Task kind must be 1-80 characters and payload must be an object.")
+                item = {"id": uuid.uuid4().hex, "task": value, "kind": kind,
+                        "payload": payload, "status": "queued",
                         "created_at": self._now(), "updated_at": self._now(),
                         "attempts": 0, "last_error": None}
                 tasks.append(item)
