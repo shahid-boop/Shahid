@@ -10,6 +10,10 @@ from reminder_manager import ReminderManager
 from skills.registry import SkillRegistry
 from skills.windows_tools import register_windows_skills
 from skills.file_tools import register_file_skills
+from skills.agent_tasks import register_task_skills
+from skills.system_monitor import register_monitoring_skill
+from skills.web_search import register_web_search_skill
+from skills.proactive_checks import register_proactive_skills
 
 SYSTEM_PROMPT = ("You are Shahid Assistant, a helpful Windows desktop assistant. "
                  "Be accurate, concise, and state limitations.")
@@ -18,6 +22,10 @@ def build_registry() -> SkillRegistry:
     registry = SkillRegistry()
     register_windows_skills(registry)
     register_file_skills(registry)
+    register_task_skills(registry)
+    register_monitoring_skill(registry)
+    register_web_search_skill(registry)
+    register_proactive_skills(registry)
     return registry
 
 def run_chat(voice: bool = False) -> int:
