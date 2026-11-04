@@ -144,7 +144,7 @@ class LiveVoiceSession:
                 self._assistant_speaking.set()
             else:
                 self._assistant_speaking.clear()
-            outdata[:] = bytes(chunks).ljust(needed, b"\\x00")
+            outdata[:] = bytes(chunks).ljust(needed, b"\x00")
 
         await self.client.connect(response_modalities=("AUDIO",))
         self._input_stream = sd.RawInputStream(
