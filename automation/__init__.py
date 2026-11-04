@@ -1,0 +1,1 @@
+"""Guarded desktop automation."""

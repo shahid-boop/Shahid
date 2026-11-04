@@ -1,49 +1,57 @@
 # Shahid Assistant — Windows 11
 
-A modular Python desktop assistant. This audit work is additive on `diagram-audit-implementation`, based on `diagram-first-implementation`. Existing branches and their history are preserved.
+A modular Python desktop assistant. All advanced work is additive on `diagram-audit-implementation`; prior features and branches remain preserved.
 
-## Implemented features
-- CLI chat, Tkinter desktop chat HUD (`--ui`), and localhost browser dashboard (`--server`).
-- OpenAI-compatible `/chat/completions` and Google Gemini text API (`AI_PROVIDER=gemini`).
-- Local bounded conversation history in `data/conversations.json`.
-- Optional microphone input and speech output (`--voice`) using SpeechRecognition and pyttsx3.
-- Allowlisted Windows tools: system info, launch Notepad/Calculator/Paint/Explorer, and open HTTP(S) websites.
-- Safe workspace file tools: list, read and write UTF-8 files under `workspace/`; path traversal is rejected and files are capped at 256 KB.
-- Persistent local reminders with `/remind <text>` and `/reminders`.
-- CLI tool commands: `/skills`, `/run system_info {}`, `/run list_workspace_files {}`, `/run read_workspace_file {"path":"notes.txt"}`, and `/run write_workspace_file {"path":"notes.txt","content":"hello"}`.
-- Windows GitHub Actions compile and unit-test workflow.
+## Retained foundation
+- CLI chat, Tkinter desktop chat HUD (`--ui`), localhost dashboard (`--server`).
+- OpenAI-compatible chat and Gemini text API.
+- Local bounded conversation memory, reminders, task queue, workspace file skills.
+- Allowlisted Windows app launch and website opening.
+- Windows CI compile and unit-test workflow.
 
-## Setup
-Install Python 3.11+. In PowerShell:
+## Advanced diagram modules added
+- **Gemini Live:** optional asynchronous Live API session adapter in `realtime/gemini_live.py`, with PCM16 input and streamed response events.
+- **Whisper:** optional local faster-whisper transcription in `realtime/whisper_transcriber.py`.
+- **Wake word:** openWakeWord PCM16 detector in `realtime/wake_word.py`; caller supplies audio frames.
+- **Screen/camera capture:** explicit opt-in snapshots in `vision/capture.py`; no silent recording or uploads.
+- **HUD video:** opt-in camera frame source in `vision/hud_video.py`; UI callback owns frame rendering and stop lifecycle.
+- **Topic monitoring:** user-configured HTTPS RSS/Atom feeds, keyword filtering, deduplication and background polling in `monitoring/topic_monitor.py`.
+- **Notifications:** Windows toast helper in `monitoring/notifications.py`.
+- **Windows preferences:** narrow HKCU allowlist in `windows/settings.py`; changes require explicit confirmation.
+- **Desktop automation:** PyAutoGUI click/type/screenshot primitives with explicit confirmation, screen bounds checks and fail-safe in `automation/desktop.py`.
+- **Plugin marketplace core:** Ed25519-signed manifest verification, SHA-256 archive pinning and zip-slip/size checks in `plugins/marketplace.py`.
 
+## Optional setup
+Install base packages and tests:
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-Copy-Item .env.example .env
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
+Install advanced optional dependencies:
+```powershell
+python -m pip install -r requirements-live.txt
+```
+Configure `GOOGLE_API_KEY` for Gemini Live. Live API model access and account availability depend on Google's current API entitlement. Whisper downloads a model on first use. Camera/microphone, PyAutoGUI and Windows toast behavior require a real Windows PC and user permissions.
 
-Configure local `.env`:
-- OpenAI-compatible: `AI_PROVIDER=openai`, set `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL`.
-- Gemini: `AI_PROVIDER=gemini`, set `GOOGLE_API_KEY`. Text adapter currently uses `gemini-2.5-flash`.
+## Important integration boundaries
+- The modules are callable library components. The existing CLI/dashboard/HUD do not automatically start always-on mic, webcam, screen capture, or background monitoring.
+- Gemini Live adapter expects the Google GenAI Live API and PCM16 frames supplied by an audio capture loop; this repository does not yet provide a polished duplex audio-device UI.
+- Whisper accepts an audio file; live microphone chunking and diarization are not included.
+- Wake-word detection accepts PCM16 frames; a microphone streaming loop and custom wake-word model provisioning are not bundled.
+- Camera HUD produces frames through a callback; embedding a polished video widget in Tkinter remains a UI integration task.
+- TopicMonitor is opt-in and supports RSS/Atom keyword matching. Start it from an app lifecycle and supply a callback; no monitor runs until explicitly started.
+- Windows settings are limited to three documented HKCU preferences. No arbitrary registry edits or administrator-level system changes.
+- Desktop automation supports bounded clicks and typing only. It does not execute shell commands, bypass UAC, or autonomously operate arbitrary apps.
+- Plugin marketplace code verifies signed local archives; a hosted catalog, publisher onboarding, payment, revocation service, sandboxed execution and update channel are not provided. Plugins are executable Python and must be reviewed.
+- Camera/screen captures and desktop actions require user consent. No remote upload or covert capture is implemented.
 
-Run:
-- `python main.py --chat` — terminal chat
-- `python main.py --ui` — Tkinter chat HUD
-- `python main.py --server` — local browser dashboard at http://127.0.0.1:8765
-- `python main.py --voice` — optional mic + speech mode (install voice requirements first)
+## Run existing modes
+`python main.py --chat`, `python main.py --ui`, `python main.py --server`, `python main.py --voice`.
 
-Voice packages: `python -m pip install -r requirements-voice.txt`. Recognition uses Google's online service and needs internet. Urdu recognition requests `ur-PK`; actual accuracy and TTS accent/gender depend on installed Windows voices and audio hardware. This is not Gemini Live audio.
-
-## Safety and limitations
-- Dashboard is loopback-only; it is not exposed to the public network.
-- Local tools are allowlisted; arbitrary shell execution is not enabled.
-- Workspace tools are restricted to `workspace/`, UTF-8 text, and 256 KB per file.
-- Reminder data and conversation history are stored locally under `data/`.
-- Never commit `.env` or API keys.
-- Diagram items still not implemented: Gemini Live streaming, webcam/screen capture, proactive checks, background topic monitoring, plugin loading, broad web search, HUD video/animation, and full computer control. These need dedicated integrations, permissions, and target-device testing; they are not silently represented as complete.
-- CI cannot verify the user's own microphone, speakers, or API credentials. Run tests and manually verify those on the target PC.
-
-## Validation
-Run `python -m unittest discover -s tests -v`. GitHub Actions compiles the project and runs unit tests on Windows Python 3.11.
+## Security
+- Dashboard binds to loopback only.
+- Local tools are allowlisted; no arbitrary shell execution.
+- Workspace file tools are confined to `workspace/`.
+- Never commit API keys or `.env`.

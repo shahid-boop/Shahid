@@ -1,3 +1,11 @@
-# Optional Gemini Live realtime audio support
-google-genai>=1.0,<2
-sounddevice>=0.4.6,<1
+# Optional extras for real-time audio, local transcription, capture and automation.
+google-genai>=1.20,<2
+faster-whisper>=1.1,<2
+openwakeword>=0.6,<1
+numpy>=1.26,<3
+mss>=9,<11
+opencv-python>=4.10,<5
+PyAutoGUI>=0.9.54,<1
+cryptography>=43,<46
+sounddevice>=0.5,<1
+winotify>=1.1,<2
