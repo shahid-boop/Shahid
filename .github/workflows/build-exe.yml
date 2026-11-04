@@ -1,0 +1,49 @@
+name: Build Shahid Assistant EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [diagram-audit-implementation]
+    paths:
+      - "**.py"
+      - "requirements*.txt"
+      - ".github/workflows/build-exe.yml"
+      - "build_windows.bat"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+
+      - name: Install packager
+        run: python -m pip install --upgrade pip pyinstaller
+
+      - name: Build desktop application
+        shell: cmd
+        run: build_windows.bat
+
+      - name: Verify executable exists
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/ShahidAssistant/ShahidAssistant.exe")) {
+            throw "ShahidAssistant.exe was not created"
+          }
+
+      - name: Upload Windows application
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShahidAssistant-Windows-x64
+          path: dist/ShahidAssistant/
+          if-no-files-found: error
+          retention-days: 14
