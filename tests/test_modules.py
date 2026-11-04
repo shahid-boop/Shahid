@@ -11,6 +11,7 @@ from assistant_runtime import AssistantRuntime, Turn
 from speech.gemini_live import GeminiLiveClient
 from skills.agent_tasks import AgentTasksSkill
 from skills.topic_poll_scheduler import TopicPollingScheduler
+from skills.agent_task_worker import AgentTaskWorker
 
 
 class ModuleTests(unittest.TestCase):
@@ -92,6 +93,26 @@ class ModuleTests(unittest.TestCase):
             skill.run(action="claim", task_id=item["id"])
             retried = skill.run(action="retry", task_id=item["id"])
             self.assertEqual(retried["status"], "queued")
+
+    def test_task_worker_runs_only_registered_handler_and_persists_result(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AgentTasksSkill(Path(tmp) / "tasks.json")
+            item = store.run(action="add", task="search Python", kind="web_search",
+                             payload={"query": "Python release"})
+            worker = AgentTaskWorker({"web_search": lambda query: {"query": query}},
+                                     store=store)
+            result = worker.run_once()
+            self.assertEqual(result["id"], item["id"])
+            self.assertEqual(result["status"], "completed")
+            self.assertEqual(result["result"]["query"], "Python release")
+
+    def test_task_worker_fails_unregistered_task_kind(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AgentTasksSkill(Path(tmp) / "tasks.json")
+            item = store.run(action="add", task="unsafe task", kind="arbitrary_code")
+            result = AgentTaskWorker({}, store=store).run_once()
+            self.assertEqual(result["id"], item["id"])
+            self.assertEqual(result["status"], "failed")
 
     def test_topic_scheduler_rejects_aggressive_polling(self):
         with self.assertRaises(ValueError):
