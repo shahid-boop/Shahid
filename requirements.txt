@@ -1,0 +1,2 @@
+# Foundation build uses Python standard library only.
+# Voice / Gemini Live dependencies will be added when that diagram module is implemented and tested.
