@@ -1,0 +1,2 @@
+# Optional guarded desktop automation
+pyautogui>=0.9.54,<1
