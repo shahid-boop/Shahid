@@ -1,6 +1,7 @@
 """Tkinter HUD/chat interface with optional push-to-talk voice."""
 from __future__ import annotations
 
+import asyncio
 import threading
 import tkinter as tk
 from tkinter import scrolledtext
@@ -31,6 +32,11 @@ class AssistantWindow:
             state=tk.NORMAL if voice is not None else tk.DISABLED,
         )
         self.voice_button.pack(side=tk.RIGHT, padx=(8, 0))
+        self.live_button = tk.Button(
+            bottom, text="Gemini Live", command=self._gemini_live,
+            state=tk.NORMAL if voice is not None else tk.DISABLED,
+        )
+        self.live_button.pack(side=tk.RIGHT, padx=(8, 0))
         self._append("System", "Assistant interface ready. Voice recording is push-to-talk only.")
 
     def _append(self, speaker: str, message: str) -> None:
@@ -47,6 +53,7 @@ class AssistantWindow:
         self.send_button.configure(state=state)
         if self.voice is not None:
             self.voice_button.configure(state=state)
+            self.live_button.configure(state=state)
 
     def _send(self) -> None:
         message = self.entry.get().strip()
@@ -83,6 +90,39 @@ class AssistantWindow:
             except Exception as exc:
                 self.root.after(0, lambda error=str(exc): self._append("Voice error", error))
             finally:
+                self.root.after(0, lambda: self._set_busy(False))
+
+        threading.Thread(target=work, daemon=True).start()
+
+
+    def _gemini_live(self) -> None:
+        if self.voice is None:
+            return
+        self._set_busy(True)
+        self._append("System", "Gemini Live: recording one utterance. Check microphone permission.")
+
+        def work() -> None:
+            client = None
+            try:
+                from speech.gemini_live import GeminiLiveClient
+                pcm = self.voice.record_pcm_once()
+                client = GeminiLiveClient(
+                    system_instruction=self.config.get(
+                        "system_prompt",
+                        "You are Shahid Assistant, a helpful Windows desktop assistant.",
+                    )
+                )
+                heard, audio = asyncio.run(client.audio_turn(pcm, self.voice.sample_rate))
+                self.root.after(0, lambda text=heard: self._append("Gemini Live", text or "[Audio response received]"))
+                self.voice.play_pcm(audio, sample_rate=24000)
+            except Exception as exc:
+                self.root.after(0, lambda error=str(exc): self._append("Gemini Live error", error))
+            finally:
+                if client is not None:
+                    try:
+                        asyncio.run(client.close())
+                    except Exception:
+                        pass
                 self.root.after(0, lambda: self._set_busy(False))
 
         threading.Thread(target=work, daemon=True).start()
