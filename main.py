@@ -110,9 +110,15 @@ def main() -> int:
     mode.add_argument("--ui", action="store_true", help="Run desktop HUD")
     mode.add_argument("--chat", action="store_true", help="Run terminal chat")
     mode.add_argument("--voice", action="store_true", help="Run optional microphone and speech mode")
+    mode.add_argument("--live", action="store_true", help="Run Gemini Live real-time microphone and speaker session")
     args = parser.parse_args()
     try:
-        if args.server:
+        if args.live:
+            import asyncio, os
+            from realtime.audio_io import run_gemini_live_audio
+            settings = Settings.load()
+            asyncio.run(run_gemini_live_audio(settings.google_api_key, on_transcript=lambda kind, value: print(f"\\n{kind}: {value}")))
+        elif args.server:
             from server import serve
             serve(Settings.load())
         elif args.ui:

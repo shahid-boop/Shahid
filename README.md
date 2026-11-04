@@ -55,3 +55,20 @@ Configure `GOOGLE_API_KEY` for Gemini Live. Live API model access and account av
 - Local tools are allowlisted; no arbitrary shell execution.
 - Workspace file tools are confined to `workspace/`.
 - Never commit API keys or `.env`.
+
+
+## Advanced diagram modules (opt-in)
+Install the optional Windows integrations with `python -m pip install -r requirements-live.txt`. These are not part of the minimal install because audio, camera, and native desktop dependencies vary by PC.
+
+- **Gemini Live audio:** `python main.py --live` streams 16 kHz microphone PCM to Gemini Live and plays 24 kHz response PCM through the default speaker. Configure `GOOGLE_API_KEY`; the model and API access must support Live. Press Ctrl+C to stop.
+- **Whisper:** use `realtime.whisper_transcriber.WhisperTranscriber` to transcribe a recorded audio file locally. First model use downloads model weights.
+- **Wake word:** `realtime.wake_word.WakeWordDetector` scores caller-supplied PCM16 frames. Microphone ownership stays with the calling app.
+- **Screen/camera:** `/run capture_screen {"confirm":true}` and `/run capture_camera {"confirm":true}` save a still image. The camera and screen are never accessed without explicit confirmation.
+- **HUD video:** `vision.hud_video.HudVideo` streams webcam frames to a callback; the caller owns the preview window and must stop it.
+- **Topic monitoring:** `/run start_topic_monitor {"feeds":["https://example.org/rss"],"keywords":["python"],"interval_seconds":900}`; stop with `/run stop_topic_monitor {}`. Windows toast notifications require winotify. Only HTTPS RSS/Atom feeds are accepted; polling is opt-in.
+- **Windows preferences and app identity:** `/run list_windows_preferences {}`, `/run set_windows_preference {"name":"dark_app_mode","enabled":true,"confirm":true}`, and `/run lookup_installed_app {"name":"Notepad"}`. Registry writes are limited to allowlisted HKCU values.
+- **Desktop automation:** `/run desktop_screenshot {"confirm":true}`, `/run desktop_click {"x":500,"y":300,"confirm":true}`, and `/run desktop_type {"text":"hello","confirm":true}`. This is coordinate-based automation, not a vision agent; PyAutoGUI's fail-safe remains enabled.
+- **Signed plugin packages:** `plugins.marketplace.install_archive` verifies an Ed25519-signed manifest and archive SHA-256, rejects traversal/symlink entries and enforces package limits. Installation does not execute plugin code; review and explicit activation are separate. This is a local marketplace core, not a hosted public catalog/publisher ecosystem.
+
+### Important boundaries
+Gemini Live needs a Live-enabled Google API key and working microphone/speaker drivers. Whisper runs locally but may download large model weights and use significant RAM/CPU. Screen/camera access can expose private information; invoke only when you intend to capture. Desktop clicks/typing affect the active desktop and require explicit confirmation. Topic monitoring runs only after the start skill is called and stops when the process exits. A production hosted plugin marketplace still needs a publisher portal, trusted signing-key distribution/rotation, moderation, update/revocation service, and sandboxed plugin runtime; this repository deliberately does not execute downloaded plugin code automatically.

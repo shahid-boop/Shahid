@@ -1,30 +1,26 @@
-"""Explicit opt-in screen/webcam snapshots. No background capture or upload."""
-from __future__ import annotations
+"""Explicit screen/webcam capture; never starts automatically."""
 from pathlib import Path
-
 class CaptureUnavailable(RuntimeError): pass
-
-def capture_screen(output: str | Path, monitor: int = 1) -> str:
-    try: import mss
-    except ImportError as exc: raise CaptureUnavailable("Install requirements-live.txt for screen capture.") from exc
-    target = Path(output); target.parent.mkdir(parents=True, exist_ok=True)
-    with mss.mss() as sct:
-        monitors = sct.monitors
-        if monitor < 1 or monitor >= len(monitors): raise ValueError("Unknown monitor index")
-        sct_img = sct.grab(monitors[monitor])
-        from mss.tools import to_png
-        target.write_bytes(to_png(sct_img.rgb, sct_img.size))
-    return str(target)
-
-def capture_camera(output: str | Path, camera_index: int = 0) -> str:
-    try: import cv2
-    except ImportError as exc: raise CaptureUnavailable("Install requirements-live.txt for camera capture.") from exc
-    target = Path(output); target.parent.mkdir(parents=True, exist_ok=True)
-    camera = cv2.VideoCapture(camera_index)
+def capture_screen(output="data/captures/screen.png", monitor=1):
+    if not isinstance(monitor,int) or monitor < 0: raise ValueError("monitor must be non-negative")
     try:
-        if not camera.isOpened(): raise CaptureUnavailable("Camera could not be opened.")
-        ok, frame = camera.read()
-        if not ok: raise CaptureUnavailable("Camera frame could not be read.")
-        if not cv2.imwrite(str(target), frame): raise CaptureUnavailable("Could not save camera frame.")
+        import mss
+        from PIL import Image
+    except ImportError as exc: raise CaptureUnavailable("Install mss and Pillow from requirements-live.txt") from exc
+    path=Path(output); path.parent.mkdir(parents=True,exist_ok=True)
+    with mss.mss() as capture:
+        if monitor >= len(capture.monitors): raise ValueError("monitor index is unavailable")
+        shot=capture.grab(capture.monitors[monitor]); Image.frombytes("RGB",shot.size,shot.rgb).save(path)
+    return str(path)
+def capture_camera(output="data/captures/camera.jpg", camera_index=0):
+    if not isinstance(camera_index,int) or camera_index < 0: raise ValueError("camera_index must be non-negative")
+    try: import cv2
+    except ImportError as exc: raise CaptureUnavailable("Install opencv-python from requirements-live.txt") from exc
+    path=Path(output); path.parent.mkdir(parents=True,exist_ok=True); camera=cv2.VideoCapture(camera_index)
+    try:
+        if not camera.isOpened(): raise CaptureUnavailable("Camera could not be opened")
+        ok,frame=camera.read()
+        if not ok: raise CaptureUnavailable("Camera frame could not be read")
+        if not cv2.imwrite(str(path),frame): raise CaptureUnavailable("Could not save camera frame")
     finally: camera.release()
-    return str(target)
+    return str(path)
