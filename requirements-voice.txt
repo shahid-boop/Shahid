@@ -1,0 +1,4 @@
+# Optional voice input/output. Install only when microphone/speaker features are needed.
+SpeechRecognition>=3.10,<4
+PyAudio>=0.2.14,<1
+pyttsx3>=2.90,<3
