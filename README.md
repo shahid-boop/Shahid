@@ -1,6 +1,6 @@
 # Shahid Assistant — Windows 11
 
-A modular Python desktop assistant foundation, developed on the `diagram-first-implementation` branch. Existing `main` and `architecture-foundation` branches are preserved.
+A modular Python desktop assistant. This audit work is additive on `diagram-audit-implementation`, based on `diagram-first-implementation`. Existing branches and their history are preserved.
 
 ## Implemented features
 - CLI chat, Tkinter desktop chat HUD (`--ui`), and localhost browser dashboard (`--server`).
@@ -8,7 +8,9 @@ A modular Python desktop assistant foundation, developed on the `diagram-first-i
 - Local bounded conversation history in `data/conversations.json`.
 - Optional microphone input and speech output (`--voice`) using SpeechRecognition and pyttsx3.
 - Allowlisted Windows tools: system info, launch Notepad/Calculator/Paint/Explorer, and open HTTP(S) websites.
-- CLI tool commands: `/skills`, `/run system_info {}`, `/run launch_app {"name":"notepad"}`, `/run open_website {"url":"https://example.com"}`.
+- Safe workspace file tools: list, read and write UTF-8 files under `workspace/`; path traversal is rejected and files are capped at 256 KB.
+- Persistent local reminders with `/remind <text>` and `/reminders`.
+- CLI tool commands: `/skills`, `/run system_info {}`, `/run list_workspace_files {}`, `/run read_workspace_file {"path":"notes.txt"}`, and `/run write_workspace_file {"path":"notes.txt","content":"hello"}`.
 - Windows GitHub Actions compile and unit-test workflow.
 
 ## Setup
@@ -37,9 +39,10 @@ Voice packages: `python -m pip install -r requirements-voice.txt`. Recognition u
 ## Safety and limitations
 - Dashboard is loopback-only; it is not exposed to the public network.
 - Local tools are allowlisted; arbitrary shell execution is not enabled.
-- Conversation history is local. CLI `/clear` clears the default conversation.
+- Workspace tools are restricted to `workspace/`, UTF-8 text, and 256 KB per file.
+- Reminder data and conversation history are stored locally under `data/`.
 - Never commit `.env` or API keys.
-- Webcam, full desktop vision/control, wake-word, animated HUD, Gemini Live streaming, and physical device testing are not implemented.
+- Diagram items still not implemented: Gemini Live streaming, webcam/screen capture, proactive checks, background topic monitoring, plugin loading, broad web search, HUD video/animation, and full computer control. These need dedicated integrations, permissions, and target-device testing; they are not silently represented as complete.
 - CI cannot verify the user's own microphone, speakers, or API credentials. Run tests and manually verify those on the target PC.
 
 ## Validation
