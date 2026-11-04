@@ -73,6 +73,14 @@ class ModuleTests(unittest.TestCase):
         with self.assertRaises(LookupError):
             plugins.call("unregistered")
 
+    def test_plugin_loader_rejects_duplicate_and_invalid_names(self):
+        plugins = PluginLoader()
+        plugins.register("safe_plugin", lambda: "ok")
+        with self.assertRaises(ValueError):
+            plugins.register("safe_plugin", lambda: "replace")
+        with self.assertRaises(ValueError):
+            plugins.register("../unsafe", lambda: "no")
+
     def test_agent_tasks_persist_and_enforce_lifecycle(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "tasks.json"
