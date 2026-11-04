@@ -1,32 +1,93 @@
-# Shahid Assistant
+# Shahid Assistant — Windows 11
 
-A modular desktop assistant following the supplied architecture diagram.
+A modular Windows desktop assistant built from the supplied architecture diagram.
 
-## Architecture modules
+## Current implementation
 
-- `main.py` — application/runtime entry point.
-- `config_manager.py` — local configuration with safe defaults.
-- `memory_manager.py` — persistent local memory store.
-- `engine_pipeline.py` — provider-neutral engine contract and dispatcher.
+- Conversation runtime with bounded recent context and local persistent transcript
+- OpenAI-compatible chat provider (credentials supplied through environment variables)
+- Tkinter desktop chat HUD with explicit push-to-talk recording
+- OpenAI Whisper speech-to-text and OpenAI text-to-speech adapters
+- Localhost-only dashboard API
+- Skill and plugin registries
+- Windows system health checks, allowlisted app detection/launch, and Settings page launcher
+- Workspace-scoped text file reading/creation and local video opening
+- Local reminders, web search, topic watchlist, one-shot proactive checks
+- Opt-in background health polling module
+- Unit tests and GitHub Actions workflow
 
-The planned next layers are the provider implementations (LLM, speech input/output),
-user interfaces (dashboard and HUD), skills/control modules, live conversation,
-plugin loading, proactive/background monitoring, and computer/file controls.
+Some diagram elements remain incomplete: Gemini Live session runtime, full settings UI, camera capture, robust plugin discovery/contracts, task scheduling/notifications, production-grade Windows automation, and end-to-end Windows validation.
 
-## Run the foundation
+## Requirements
 
-Requires Python 3.10 or newer. No third-party packages are required for this stage.
+- Windows 11
+- Python 3.11+
+- An OpenAI API key for chat and cloud speech services
+- Microphone permission for push-to-talk
+- Optional internet connection for web search and provider calls
 
-```bash
-python main.py
-python -m unittest discover -s tests
+## Install
+
+Open PowerShell in the repository directory:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-Configuration and memory are created under `data/` when first saved. Do not put API
-keys or other secrets in the JSON configuration file; use environment variables for
-credentials when provider integrations are added.
+Edit `.env` and set `OPENAI_API_KEY` and `OPENAI_MODEL`. Never commit your real `.env` file.
 
-## Current scope
+The current provider reads environment variables directly. To load `.env` automatically, install/use python-dotenv in your launch environment or set the variables in PowerShell before starting.
 
-This is the first foundation milestone only. External AI providers, voice services,
-HUD/dashboard UI, automation and operating-system controls are not implemented yet.
+```powershell
+$env:OPENAI_API_KEY="your-key"
+$env:OPENAI_MODEL="your-model"
+python main.py
+```
+
+Launch the desktop HUD:
+
+```powershell
+python main.py --ui
+```
+
+Launch the local dashboard API:
+
+```powershell
+python main.py --server
+```
+
+The dashboard binds to `127.0.0.1:8765` only. It is not intended to be exposed to the public internet.
+
+## CLI skills
+
+```text
+/help
+/skills
+/skill system_monitor {}
+/skill computer_settings {"page":"sound"}
+/skill reminders {"action":"add","text":"Call home","due_at":"2026-11-04T18:00:00+05:00"}
+```
+
+Skills execute only when explicitly invoked. File tools are restricted to the local `workspace/` folder. File creation does not overwrite or delete existing files. Screen capture is explicit; it is not continuous. App launching uses an allowlist.
+
+## Tests
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+## Security notes
+
+- Keep API keys in environment variables or a local ignored `.env` file.
+- Do not expose the dashboard server beyond localhost without adding authentication and TLS.
+- Review any operating-system automation before enabling it.
+- Microphone capture is push-to-talk, not always-on.
+- Background health monitoring is opt-in and must be started by the application/user.
+
+## Project status
+
+This is an active implementation, not yet a fully completed or verified release. The Gemini Live runtime, full Windows settings experience, camera workflow, dependable scheduled notifications, complete plugin lifecycle and end-to-end tests on a real Windows 11 machine remain to be implemented and verified.
