@@ -7,6 +7,7 @@ from typing import Any
 from engine_pipeline import EnginePipeline
 from memory_manager import MemoryManager
 from skills.loader import SkillLoader
+from plugin_loader import PluginLoader
 
 
 @dataclass
@@ -25,11 +26,13 @@ class AssistantRuntime:
         provider_name: str,
         skills: SkillLoader | None = None,
         system_prompt: str = "You are a helpful desktop assistant.",
+        plugins: PluginLoader | None = None,
     ) -> None:
         self.engines = engines
         self.memory = memory
         self.provider_name = provider_name
         self.skills = skills or SkillLoader()
+        self.plugins = plugins or PluginLoader()
         self.system_prompt = system_prompt
         self.history: list[Turn] = []
 
@@ -50,6 +53,10 @@ class AssistantRuntime:
     def run_skill(self, name: str, **arguments: Any) -> Any:
         """Run a named skill only when explicitly requested by the caller."""
         return self.skills.run(name, **arguments)
+
+    def run_plugin(self, name: str, **arguments: Any) -> Any:
+        """Invoke a trusted plugin handler registered at startup."""
+        return self.plugins.call(name, **arguments)
 
     def _build_prompt(self, user_text: str) -> str:
         recent_memory = self.memory.recent(limit=10)
