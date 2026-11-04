@@ -104,7 +104,7 @@ def main() -> None:
             sample_rate=int(config.get("voice_sample_rate", 16000)),
             seconds=int(config.get("voice_record_seconds", 6)),
         )
-        launch(runtime.respond, voice)
+        launch(runtime.respond, voice, config)
         return
 
     scheduler = None
