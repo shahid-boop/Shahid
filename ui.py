@@ -133,5 +133,5 @@ class AssistantWindow:
         self.root.mainloop()
 
 
-def launch(respond: Callable[[str], str], voice: Any = None) -> None:
-    AssistantWindow(respond, voice).run()
+def launch(respond: Callable[[str], str], voice: Any = None, config: dict | None = None) -> None:
+    AssistantWindow(respond, voice, config).run()
