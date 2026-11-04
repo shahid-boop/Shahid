@@ -1,0 +1,2 @@
+# Optional local Whisper transcription; CPU-friendly default
+faster-whisper>=1.0,<2
