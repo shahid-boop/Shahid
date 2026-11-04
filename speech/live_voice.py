@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import queue
 import threading
+import math
 from typing import Any
 
 from speech.gemini_live import GeminiLiveClient
