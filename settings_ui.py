@@ -12,7 +12,7 @@ class SettingsWindow:
         self.config = load_config()
         self.root = tk.Tk()
         self.root.title("Shahid Assistant Settings")
-        self.root.geometry("440x320")
+        self.root.geometry("440x360")
         self.root.resizable(False, False)
 
         frame = ttk.Frame(self.root, padding=16)
@@ -37,8 +37,10 @@ class SettingsWindow:
         self.seconds = tk.IntVar(value=int(self.config.get("voice_record_seconds", 6)))
         ttk.Spinbox(frame, from_=2, to=20, textvariable=self.seconds, width=8).grid(row=4, column=1, sticky="w", pady=6)
 
-        ttk.Label(frame, text="API key is read from environment/.env; never stored here.", wraplength=390).grid(row=5, column=0, columnspan=2, sticky="w", pady=10)
-        ttk.Button(frame, text="Save settings", command=self.save).grid(row=6, column=1, sticky="e", pady=8)
+        self.topmost = tk.BooleanVar(value=bool(self.config.get("always_on_top", True)))
+        ttk.Checkbutton(frame, text="Keep assistant HUD always on top", variable=self.topmost).grid(row=5, column=0, columnspan=2, sticky="w", pady=6)
+        ttk.Label(frame, text="API key is read from environment/.env; never stored here.", wraplength=390).grid(row=6, column=0, columnspan=2, sticky="w", pady=10)
+        ttk.Button(frame, text="Save settings", command=self.save).grid(row=7, column=1, sticky="e", pady=8)
         frame.columnconfigure(1, weight=1)
 
     def save(self):
@@ -51,6 +53,7 @@ class SettingsWindow:
             "model": self.model.get().strip(),
             "base_url": self.base_url.get().strip(),
             "voice_record_seconds": max(2, min(20, self.seconds.get())),
+            "always_on_top": self.topmost.get(),
         })
         save_config(self.config)
         messagebox.showinfo("Saved", "Settings saved. Restart the assistant to apply them.")
