@@ -23,7 +23,7 @@ class SettingsWindow:
 
         ttk.Label(frame, text="Engine").grid(row=1, column=0, sticky="w", pady=6)
         self.engine = tk.StringVar(value=self.config.get("engine", "openai_compatible"))
-        ttk.Combobox(frame, textvariable=self.engine, values=["openai_compatible"], state="readonly").grid(row=1, column=1, sticky="ew", pady=6)
+        ttk.Combobox(frame, textvariable=self.engine, values=["openai_compatible", "gemini"], state="readonly").grid(row=1, column=1, sticky="ew", pady=6)
 
         ttk.Label(frame, text="Model").grid(row=2, column=0, sticky="w", pady=6)
         self.model = tk.StringVar(value=self.config.get("model", ""))
