@@ -87,6 +87,8 @@ Choose the engine in the settings window and restart the app after changing it. 
 /skill computer_settings {"page":"sound"}
 /skill camera_capture {"output_path":"camera.png","device_index":0}
 /skill windows_automation {"action":"open_notepad","confirmed":true}
+/plugins
+/plugin system_monitor {}
 ```
 
 Skills execute only when explicitly invoked. File tools are restricted to the local `workspace/` folder. File creation does not overwrite or delete existing files. Screen and camera capture are on-demand; they are not continuous. App launching uses an allowlist.
