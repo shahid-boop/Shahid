@@ -83,10 +83,41 @@ class LiveVoiceSession:
         self._loop = asyncio.get_running_loop()
         self._input_queue = asyncio.Queue(maxsize=40)
 
+        def on_loopback(indata, frames, timing, status):
+            if status:
+                return
+            try:
+                self._reference_audio.put_nowait(bytes(indata))
+            except queue.Full:
+                try:
+                    self._reference_audio.get_nowait()
+                    self._reference_audio.put_nowait(bytes(indata))
+                except queue.Empty:
+                    pass
+
         def on_input(indata, frames, timing, status):
             if status:
                 return
             payload = bytes(indata)
+            samples = memoryview(payload).cast('h')
+            rms = math.sqrt(sum(value * value for value in samples) / max(1, len(samples)))
+            if self._aec is not None:
+                try:
+                    reference = self._reference_audio.get_nowait()
+                    payload, rms = self._aec.process(payload, reference)
+                except queue.Empty:
+                    pass
+            if rms >= self._speech_threshold:
+                self._speech_hangover = 8
+            elif self._speech_hangover:
+                self._speech_hangover -= 1
+            if self._speech_hangover and (self._assistant_speaking.is_set() or not self._audio_out.empty()):
+                while True:
+                    try:
+                        self._audio_out.get_nowait()
+                    except queue.Empty:
+                        break
+                self._assistant_speaking.clear()
             if self._loop and self._input_queue:
                 def enqueue():
                     if self._input_queue.full():
@@ -96,7 +127,6 @@ class LiveVoiceSession:
                             pass
                     self._input_queue.put_nowait(payload)
                 self._loop.call_soon_threadsafe(enqueue)
-
         def on_output(outdata, frames, timing, status):
             needed = frames * 2
             chunks = bytearray()
