@@ -33,13 +33,37 @@ class AssistantWindow:
             bottom, text="Push to talk", command=self._voice,
             state=tk.NORMAL if voice is not None else tk.DISABLED,
         )
-        self.voice_button.pack(side=tk.RIGHT, padx=(8, 0))
+        self.voice_button.pack(side=tk.RIGHT, padx=(8, 0))\n        self.compact_button = tk.Button(bottom, text="Compact", command=self._toggle_compact)\n        self.compact_button.pack(side=tk.RIGHT, padx=(8, 0))\n        self.dock_button = tk.Button(bottom, text="Dock Right", command=self._dock_right)\n        self.dock_button.pack(side=tk.RIGHT, padx=(8, 0))
         self.live_button = tk.Button(
             bottom, text="Start Live Voice", command=self._gemini_live,
             state=tk.NORMAL if voice is not None else tk.DISABLED,
         )
         self.live_button.pack(side=tk.RIGHT, padx=(8, 0))
-        self._live_stop = None\n        self._live_session = None\n        self._append("System", "Assistant interface ready. Voice recording is push-to-talk only until Live Voice is explicitly started.")
+        self._compact = False\n        self._live_stop = None\n        self._live_session = None\n        self._append("System", "Assistant interface ready. Voice recording is push-to-talk only until Live Voice is explicitly started.")
+
+    def _toggle_compact(self) -> None:
+        self._compact = not self._compact
+        if self._compact:
+            self.output.pack_forget()
+            self.root.geometry("520x150")
+            self.compact_button.configure(text="Expand")
+        else:
+            self.output.pack(fill=tk.BOTH, expand=True, padx=12, pady=(12, 8), before=self.root.winfo_children()[-1])
+            self.root.geometry("760x560")
+            self.compact_button.configure(text="Compact")
+
+    def _dock_right(self) -> None:
+        self.root.update_idletasks()
+        width = 520 if self._compact else 760
+        height = self.root.winfo_height()
+        x = self.root.winfo_screenwidth() - width
+        self.root.geometry(f"{width}x{height}+{x}+0")
+        self.dock_button.configure(text="Undock", command=self._undock)
+
+    def _undock(self) -> None:
+        self.root.geometry("520x150" if self._compact else "760x560")
+        self.root.geometry("+120+100")
+        self.dock_button.configure(text="Dock Right", command=self._dock_right)
 
     def _append(self, speaker: str, message: str) -> None:
         self.output.configure(state="normal")
