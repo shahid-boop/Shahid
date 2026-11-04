@@ -16,6 +16,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "model": "",
     "base_url": "",
     "voice_enabled": False,
+    "always_on_top": True,
+    "gemini_live_model": "gemini-live-2.5-flash-preview",
 }
 
 
