@@ -76,6 +76,7 @@ def main() -> None:
     parser.add_argument("--reminders", action="store_true", help="Enable reminder notifications")
     parser.add_argument("--monitor", action="store_true", help="Enable opt-in background health monitoring")
     parser.add_argument("--watch-topics", action="store_true", help="Enable opt-in scheduled topic polling")
+    parser.add_argument("--run-tasks", action="store_true", help="Enable opt-in durable task worker")
     parser.add_argument("--gemini-live", action="store_true", help="Start a Gemini Live text session")
     args = parser.parse_args()
 
@@ -118,6 +119,16 @@ def main() -> None:
     scheduler = None
     monitor = None
     topic_scheduler = None
+    task_worker = None
+    if args.run_tasks:
+        from skills.agent_task_worker import AgentTaskWorker
+        from skills.web_search import WebSearchSkill
+        task_worker = AgentTaskWorker(
+            handlers={"web_search": lambda **payload: WebSearchSkill().run(**payload)},
+            on_result=lambda result: print(f"Task worker> {json.dumps(result, default=str)}"),
+        )
+        task_worker.start()
+        print("Durable task worker enabled (approved task kinds: web_search).")
     if args.watch_topics:
         from skills.topic_poll_scheduler import TopicPollingScheduler
         topic_scheduler = TopicPollingScheduler(
@@ -192,6 +203,8 @@ def main() -> None:
             monitor.stop()
         if topic_scheduler is not None:
             topic_scheduler.stop()
+        if task_worker is not None:
+            task_worker.stop()
 
 
 if __name__ == "__main__":
