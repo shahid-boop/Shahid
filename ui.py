@@ -61,7 +61,7 @@ class AssistantWindow:
                 answer = self.respond(message)
                 self.root.after(0, lambda: self._append("Assistant", answer))
             except Exception as exc:
-                self.root.after(0, lambda: self._append("Error", str(exc)))
+                self.root.after(0, lambda error=str(exc): self._append("Error", error))
             finally:
                 self.root.after(0, lambda: self._set_busy(False))
 
@@ -81,7 +81,7 @@ class AssistantWindow:
                 self.root.after(0, lambda: self._append("Assistant", answer))
                 self.voice.speak(answer)
             except Exception as exc:
-                self.root.after(0, lambda: self._append("Voice error", str(exc)))
+                self.root.after(0, lambda error=str(exc): self._append("Voice error", error))
             finally:
                 self.root.after(0, lambda: self._set_busy(False))
 
