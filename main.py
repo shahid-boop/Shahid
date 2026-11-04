@@ -6,8 +6,10 @@ import sys
 from config_manager import Settings
 from engine_pipeline import ChatEngine, ProviderError
 from memory_manager import MemoryManager
+from reminder_manager import ReminderManager
 from skills.registry import SkillRegistry
 from skills.windows_tools import register_windows_skills
+from skills.file_tools import register_file_skills
 
 SYSTEM_PROMPT = ("You are Shahid Assistant, a helpful Windows desktop assistant. "
                  "Be accurate, concise, and state limitations.")
@@ -15,11 +17,12 @@ SYSTEM_PROMPT = ("You are Shahid Assistant, a helpful Windows desktop assistant.
 def build_registry() -> SkillRegistry:
     registry = SkillRegistry()
     register_windows_skills(registry)
+    register_file_skills(registry)
     return registry
 
 def run_chat(voice: bool = False) -> int:
     settings = Settings.load()
-    engine, memory, skills = ChatEngine(settings), MemoryManager(), build_registry()
+    engine, memory, skills, reminders = ChatEngine(settings), MemoryManager(), build_registry(), ReminderManager()
     speech = None
     if voice:
         try:
@@ -28,7 +31,7 @@ def run_chat(voice: bool = False) -> int:
         except (ImportError, RuntimeError) as exc:
             print(f"Voice unavailable: {exc}", file=sys.stderr)
             return 2
-    print("Shahid Assistant. Commands: /exit, /clear, /skills")
+    print("Shahid Assistant. Commands: /exit, /clear, /skills, /reminders")
     if voice:
         print("Voice mode enabled (Urdu-Pakistan recognition requested). Say 'exit' to quit.")
     while True:
@@ -54,12 +57,23 @@ def run_chat(voice: bool = False) -> int:
         if command.lower() == "/skills":
             print("Available local tools:", ", ".join(skills.names()))
             continue
+        if command.lower() == "/reminders":
+            items = reminders.list()
+            print(json.dumps(items, ensure_ascii=False, indent=2) if items else "No pending reminders.")
+            continue
+        if command.lower().startswith("/remind "):
+            try:
+                item = reminders.add(command[8:].strip())
+                print("Reminder saved:", json.dumps(item, ensure_ascii=False))
+            except ValueError as exc:
+                print(f"Reminder error: {exc}")
+            continue
         if command.lower().startswith("/run "):
             try:
                 _, name, raw = command.split(" ", 2)
                 result = skills.run(name, json.loads(raw))
                 print("Tool result:", json.dumps(result, ensure_ascii=False))
-            except (ValueError, KeyError, json.JSONDecodeError) as exc:
+            except (ValueError, KeyError, json.JSONDecodeError, TypeError) as exc:
                 print(f"Tool error: {exc}")
             continue
         if not command:
