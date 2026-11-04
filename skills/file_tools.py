@@ -1,6 +1,7 @@
 """Safe workspace file tools. Access is confined to the assistant's workspace directory."""
 from __future__ import annotations
 from pathlib import Path
+import os
 from typing import Any
 
 WORKSPACE = Path(__file__).resolve().parents[1] / "workspace"
@@ -17,6 +18,10 @@ def _target(payload: dict[str, Any] | None) -> Path:
         raise ValueError("Path must stay inside the workspace.")
     return candidate
 
+def _relative(path: Path) -> str:
+    # os.path.relpath handles Windows case-normalized temporary paths reliably.
+    return os.path.relpath(str(path), str(WORKSPACE.resolve()))
+
 def list_files(_: dict[str, Any] | None = None) -> dict[str, Any]:
     WORKSPACE.mkdir(parents=True, exist_ok=True)
     files = sorted(str(p.relative_to(WORKSPACE)) for p in WORKSPACE.rglob("*") if p.is_file())
@@ -28,7 +33,7 @@ def read_file(payload: dict[str, Any] | None = None) -> dict[str, Any]:
         raise FileNotFoundError("Workspace file does not exist.")
     if path.stat().st_size > MAX_READ_BYTES:
         raise ValueError("File is too large to read (maximum 256 KB).")
-    return {"path": str(path.relative_to(WORKSPACE)), "content": path.read_text(encoding="utf-8")}
+    return {"path": _relative(path), "content": path.read_text(encoding="utf-8")}
 
 def write_file(payload: dict[str, Any] | None = None) -> dict[str, Any]:
     data = payload or {}
