@@ -74,6 +74,7 @@ def main() -> None:
     parser.add_argument("--server", action="store_true", help="Launch the local dashboard API")
     parser.add_argument("--settings", action="store_true", help="Open assistant settings")
     parser.add_argument("--reminders", action="store_true", help="Enable reminder notifications")
+    parser.add_argument("--monitor", action="store_true", help="Enable opt-in background health monitoring")
     parser.add_argument("--gemini-live", action="store_true", help="Start a Gemini Live text session")
     args = parser.parse_args()
 
@@ -114,6 +115,15 @@ def main() -> None:
         return
 
     scheduler = None
+    monitor = None
+    if args.monitor:
+        from skills.background_monitoring import BackgroundMonitoring
+        monitor = BackgroundMonitoring(
+            interval_seconds=int(config.get("monitor_interval_seconds", 300)),
+            on_result=lambda result: print(f"Health monitor> {json.dumps(result, default=str)}"),
+        )
+        monitor.start()
+        print("Background health monitoring enabled.")
     if args.reminders:
         from skills.reminder_scheduler import ReminderScheduler
         scheduler = ReminderScheduler()
@@ -168,6 +178,8 @@ def main() -> None:
     finally:
         if scheduler is not None:
             scheduler.stop()
+        if monitor is not None:
+            monitor.stop()
 
 
 if __name__ == "__main__":
