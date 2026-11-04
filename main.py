@@ -141,7 +141,7 @@ def main() -> None:
             if message.lower() in {"/exit", "/quit"}:
                 break
             if message == "/help":
-                print("/skills — list skills\n/skill NAME JSON — run a skill explicitly\n/exit — quit")
+                print("/skills — list skills\n/skill NAME JSON — run a skill explicitly\n/plugins — list trusted plugins\n/plugin NAME JSON — run a trusted plugin\n/exit — quit")
                 continue
             if message == "/skills":
                 print(json.dumps(runtime.skills.list_skills(), indent=2))
