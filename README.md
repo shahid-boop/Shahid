@@ -5,8 +5,8 @@ A modular Windows desktop assistant based on the supplied architecture diagram.
 ## Implemented modules
 
 - Conversation runtime with local persistent transcript and bounded recent context
-- OpenAI-compatible chat provider and Gemini text provider selection
-- Tkinter desktop chat HUD and separate settings window
+- OpenAI-compatible chat provider, Gemini text provider, and a Gemini Live session mode
+- Tkinter desktop chat HUD with configurable always-on-top behavior and separate settings window
 - Push-to-talk microphone capture, Whisper speech-to-text and text-to-speech adapters
 - Browser dashboard served on localhost with chat and status endpoints
 - Skill and plugin registries
@@ -19,10 +19,10 @@ A modular Windows desktop assistant based on the supplied architecture diagram.
 
 ## Still incomplete / requires further work
 
-- Gemini Live real-time audio conversation session (the Gemini text provider is not Gemini Live)
+- Gemini Live text CLI is implemented; full-duplex live microphone capture and streaming speaker playback still need end-to-end integration
 - Full-featured HUD overlay, animated/always-visible desktop widget and complete settings coverage
 - Production-grade Windows UI automation and permission/approval UX
-- Plugin package discovery, sandboxing and lifecycle management
+- External plugin package discovery/sandboxing is intentionally not enabled; plugins must be explicitly registered as trusted Python handlers
 - Persistent task execution and robust scheduled topic monitoring
 - End-to-end validation on a real Windows 11 PC, including microphone, camera, GPU/audio drivers and API provider connectivity
 
@@ -75,7 +75,7 @@ Never commit your real `.env` file. It is ignored by Git.
 .\.venv\Scripts\python.exe main.py --reminders
 ```
 
-Choose the engine in the settings window and restart the app after changing it. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
+Choose the engine in the settings window and restart the app after changing it. The HUD can be kept always on top from Settings. Gemini Live text mode uses the separate `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL` settings: `python main.py --gemini-live`. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
 
 ## CLI skills
 
@@ -85,6 +85,7 @@ Choose the engine in the settings window and restart the app after changing it. 
 /skill system_monitor {}
 /skill computer_settings {"page":"sound"}
 /skill camera_capture {"output_path":"camera.png","device_index":0}
+/skill windows_automation {"action":"open_notepad","confirmed":true}
 ```
 
 Skills execute only when explicitly invoked. File tools are restricted to the local `workspace/` folder. File creation does not overwrite or delete existing files. Screen and camera capture are on-demand; they are not continuous. App launching uses an allowlist.
