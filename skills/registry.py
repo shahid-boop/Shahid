@@ -1,6 +1,7 @@
 """Register the built-in assistant skills."""
 from skills.agent_tasks import AgentTasksSkill
 from skills.background_monitoring import BackgroundMonitoring
+from skills.camera_capture import CameraCaptureSkill
 from skills.topic_monitoring import TopicMonitoringSkill
 from skills.app_identity import AppIdentitySkill
 from skills.computer_settings import ComputerSettingsSkill
@@ -20,6 +21,7 @@ def build_skill_loader() -> SkillLoader:
     for skill in (
         AgentTasksSkill(),
         TopicMonitoringSkill(),
+        CameraCaptureSkill(),
         AppIdentitySkill(),
         ComputerSettingsSkill(),
         FileControlSkill(),
