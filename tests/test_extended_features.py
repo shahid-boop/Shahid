@@ -9,7 +9,7 @@ class WorkspaceTests(unittest.TestCase):
         import skills.file_tools as files
         with tempfile.TemporaryDirectory() as tmp:
             old = files.WORKSPACE
-            files.WORKSPACE = Path(tmp)
+            files.WORKSPACE = Path(tmp).resolve()
             try:
                 write_file({"path":"notes/today.txt","content":"hello"})
                 self.assertEqual(read_file({"path":"notes/today.txt"})["content"], "hello")
