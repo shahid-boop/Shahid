@@ -13,6 +13,32 @@ from typing import Any
 from speech.gemini_live import GeminiLiveClient
 
 
+class AdaptiveEchoCanceller:
+    """NLMS echo reducer driven by a Windows WASAPI loopback reference."""
+    def __init__(self, taps=96, step=0.18):
+        import numpy as np
+        self.np = np
+        self.weights = np.zeros(taps, dtype=np.float32)
+        self.history = np.zeros(taps, dtype=np.float32)
+        self.step = step
+
+    def process(self, microphone, reference):
+        np = self.np
+        mic = np.frombuffer(microphone, dtype=np.int16).astype(np.float32)
+        ref = np.frombuffer(reference, dtype=np.int16).astype(np.float32)
+        ref = ref[:len(mic)] if len(ref) >= len(mic) else np.pad(ref, (0, len(mic)-len(ref)))
+        output = np.empty_like(mic)
+        for index, sample in enumerate(ref):
+            self.history[1:] = self.history[:-1]
+            self.history[0] = sample / 32768.0
+            estimate = float(np.dot(self.weights, self.history))
+            error = mic[index] / 32768.0 - estimate
+            norm = float(np.dot(self.history, self.history)) + 1e-5
+            self.weights += (self.step * error / norm) * self.history
+            output[index] = max(-32768, min(32767, error * 32768.0))
+        rms = float(np.sqrt(np.mean(output * output))) if len(output) else 0.0
+        return output.astype(np.int16).tobytes(), rms
+
 class LiveVoiceSession:
     def __init__(
         self,
@@ -31,6 +57,12 @@ class LiveVoiceSession:
         self._stop = threading.Event()
         self._input_stream: Any = None
         self._output_stream: Any = None
+        self._loopback_stream: Any = None
+        self._reference_audio = queue.Queue(maxsize=40)
+        self._aec = None
+        self._assistant_speaking = threading.Event()
+        self._speech_threshold = 650.0
+        self._speech_hangover = 0
 
     def stop(self) -> None:
         self._stop.set()
