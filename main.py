@@ -20,6 +20,9 @@ from plugin_loader import PluginLoader
 def build_runtime(config: dict) -> AssistantRuntime:
     skills = build_skill_loader()
     plugins = PluginLoader()
+    from plugin_sandbox import DockerPluginSandbox
+    sandbox = DockerPluginSandbox()
+    plugins.register("sandbox_python", lambda source, payload=None: sandbox.run(source, payload))
     for name in ("system_monitor", "web_search", "reminders", "proactive_checks"):
         plugins.register(name, lambda _name=name, **arguments: skills.run(_name, **arguments))
     return AssistantRuntime(
