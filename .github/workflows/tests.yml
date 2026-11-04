@@ -1,9 +1,9 @@
 name: Windows Python checks
 on:
   push:
-    branches: [main, diagram-first-implementation]
+    branches: [main, diagram-first-implementation, diagram-audit-implementation]
   pull_request:
-    branches: [main]
+    branches: [main, diagram-first-implementation]
 jobs:
   test:
     runs-on: windows-latest
