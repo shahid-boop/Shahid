@@ -8,12 +8,12 @@ A modular Windows desktop assistant based on the supplied architecture diagram.
 - OpenAI-compatible chat provider, Gemini text provider, and a Gemini Live session mode
 - Tkinter desktop chat HUD with configurable always-on-top behavior and separate settings window
 - Push-to-talk microphone capture, Whisper speech-to-text and text-to-speech adapters
-- Gemini Live audio-turn button in the desktop HUD (recorded PCM input and spoken PCM output; requires a Gemini API key)
+- Gemini Live continuous microphone-to-speaker streaming session with a stop control (requires Gemini API key and working audio devices)\n- Compact and right-docked HUD layouts
 - Browser dashboard served on localhost with chat and status endpoints
 - Skill and plugin registries
 - Windows system health checks, allowlisted app detection/launch, and Settings page launcher
 - Workspace-scoped text file reading/creation and local video opening
-- Local reminders, opt-in Windows toast scheduler, web search and topic watchlist
+- Local reminders, opt-in Windows toast scheduler, web search, topic watchlist and scheduled topic polling\n- Durable local task queue with claim/complete/fail/retry lifecycle
 - On-demand screen capture and on-demand webcam still-photo capture
 - Opt-in background system health polling module
 - Unit tests and Windows GitHub Actions workflow
@@ -82,7 +82,7 @@ Never commit your real `.env` file. It is ignored by Git.
 .\.venv\Scripts\python.exe main.py --gemini-live
 ```
 
-Choose the engine in the settings window and restart the app after changing it. The HUD can be kept always on top from Settings. The **Gemini Live** HUD button records one utterance and returns a spoken answer; it is not yet a continuously streaming, interruptible full-duplex voice session. Gemini Live text mode uses the separate `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL` settings: `python main.py --gemini-live`. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
+Choose the engine in the settings window and restart the app after changing it. The HUD can be kept always on top from Settings. The **Start Live Voice** HUD control opens a continuous Gemini Live audio session; **Stop Live Voice** interrupts playback and closes the session. This requires `GOOGLE_API_KEY`, `google-genai`, `sounddevice`, a microphone and speakers. Echo cancellation and automatic barge-in detection are not included. Gemini Live text mode uses the separate `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL` settings: `python main.py --gemini-live`. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
 
 ## CLI skills
 
@@ -117,4 +117,4 @@ Skills execute only when explicitly invoked. File tools are restricted to the lo
 
 ## Project status
 
-This is an active implementation and is not yet a completed, production-verified release. See the incomplete modules above. Windows 11 end-to-end testing and API credentials are still required before calling it complete.
+This is an implementation draft, not a production-verified release. Automated CI must pass on the current branch, and real Windows 11 device testing with configured API credentials is still required. Third-party plugin sandboxing, unrestricted UI automation, animated HUD effects, echo cancellation and speech barge-in detection are not claimed as implemented.
