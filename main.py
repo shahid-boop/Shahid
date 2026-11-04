@@ -28,7 +28,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Shahid Assistant")
     parser.add_argument("--ui", action="store_true", help="Launch the desktop chat HUD")
     parser.add_argument("--server", action="store_true", help="Launch the local dashboard API")
+    parser.add_argument("--settings", action="store_true", help="Open assistant settings")
     args = parser.parse_args()
+
+    if args.settings:
+        from settings_ui import SettingsWindow
+        SettingsWindow().run()
+        return
 
     config = load_config()
     runtime = build_runtime(config)
