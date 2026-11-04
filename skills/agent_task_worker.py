@@ -44,16 +44,12 @@ class AgentTaskWorker:
 
     def run_once(self) -> dict[str, Any] | None:
         queued = next((item for item in self.store.run(action="list")
-                       if item.get("status") == "queued"), None)
+                       if item.get("status") == "queued"
+                       and item.get("kind") in self.handlers), None)
         if queued is None:
             return None
         claimed = self.store.run(action="claim", task_id=queued["id"])
-        handler = self.handlers.get(claimed.get("kind", "manual"))
-        if handler is None:
-            failed = self.store.run(action="fail", task_id=claimed["id"],
-                                    error=f"No approved handler registered for task kind '{claimed.get('kind')}'.")
-            self.on_result(failed)
-            return failed
+        handler = self.handlers[claimed["kind"]]
         try:
             result = handler(**claimed.get("payload", {}))
             completed = self.store.run(action="complete", task_id=claimed["id"])
