@@ -73,9 +73,10 @@ class LiveVoiceSession:
                     part = self._audio_out.get_nowait()
                 except queue.Empty:
                     break
-                chunks.extend(part[:needed - len(chunks)])
-                if len(part) > needed - len(chunks):
-                    self._audio_out.put_nowait(part[needed - len(chunks):])
+                take = min(len(part), needed - len(chunks))
+                chunks.extend(part[:take])
+                if len(part) > take:
+                    self._audio_out.put_nowait(part[take:])
             outdata[:] = bytes(chunks).ljust(needed, b"\x00")
 
         await self.client.connect(response_modalities=("AUDIO",))
@@ -131,10 +132,16 @@ class LiveVoiceSession:
                     break
                 await asyncio.sleep(0.05)
             if not sender.done():
-                sender.cancel()
+                try:
+                    await asyncio.wait_for(sender, timeout=1.0)
+                except asyncio.TimeoutError:
+                    sender.cancel()
             await asyncio.gather(sender, return_exceptions=True)
             if not receiver.done():
-                receiver.cancel()
+                try:
+                    await asyncio.wait_for(receiver, timeout=1.5)
+                except asyncio.TimeoutError:
+                    receiver.cancel()
             await asyncio.gather(receiver, return_exceptions=True)
         finally:
             self.stop()
