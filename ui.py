@@ -8,7 +8,7 @@ from typing import Callable, Any
 
 
 class AssistantWindow:
-    def __init__(self, respond: Callable[[str], str], voice: Any = None) -> None:
+    def __init__(self, respond: Callable[[str], str], voice: Any = None, config: dict | None = None) -> None:
         self.respond = respond
         self.voice = voice
         self.root = tk.Tk()
