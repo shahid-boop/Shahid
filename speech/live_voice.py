@@ -150,6 +150,20 @@ class LiveVoiceSession:
             samplerate=self.output_rate, channels=1, dtype="int16",
             blocksize=0, callback=on_output,
         )
+        # Enable echo reduction only when PortAudio exposes a WASAPI loopback input.
+        try:
+            devices = sd.query_devices()
+            loopback = next((index for index, device in enumerate(devices)
+                             if 'loopback' in device['name'].lower() and device['max_input_channels'] > 0), None)
+            if loopback is not None:
+                self._aec = AdaptiveEchoCanceller()
+                self._loopback_stream = sd.RawInputStream(
+                    device=loopback, samplerate=self.sample_rate, blocksize=self.chunk_frames,
+                    channels=1, dtype='int16', callback=on_loopback,
+                )
+                self._loopback_stream.start()
+        except Exception:
+            self._aec = None
         self._input_stream.start()
         self._output_stream.start()
 
@@ -207,12 +221,13 @@ class LiveVoiceSession:
             await asyncio.gather(receiver, return_exceptions=True)
         finally:
             self.stop()
-            for stream in (self._input_stream, self._output_stream):
+            for stream in (self._input_stream, self._output_stream, self._loopback_stream):
                 if stream is not None:
                     try:
                         stream.stop()
                         stream.close()
                     except Exception:
                         pass
-            self._input_stream = self._output_stream = None
+            self._input_stream = self._output_stream = self._loopback_stream = None
+            self._assistant_speaking.clear()
             await self.client.close()
