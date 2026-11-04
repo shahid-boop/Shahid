@@ -35,11 +35,11 @@ class AssistantWindow:
         )
         self.voice_button.pack(side=tk.RIGHT, padx=(8, 0))
         self.live_button = tk.Button(
-            bottom, text="Gemini Live", command=self._gemini_live,
+            bottom, text="Start Live Voice", command=self._gemini_live,
             state=tk.NORMAL if voice is not None else tk.DISABLED,
         )
         self.live_button.pack(side=tk.RIGHT, padx=(8, 0))
-        self._append("System", "Assistant interface ready. Voice recording is push-to-talk only.")
+        self._live_stop = None\n        self._live_session = None\n        self._append("System", "Assistant interface ready. Voice recording is push-to-talk only until Live Voice is explicitly started.")
 
     def _append(self, speaker: str, message: str) -> None:
         self.output.configure(state="normal")
@@ -100,36 +100,46 @@ class AssistantWindow:
     def _gemini_live(self) -> None:
         if self.voice is None:
             return
-        self._set_busy(True)
-        self._append("System", "Gemini Live: recording one utterance. Check microphone permission.")
+        if self._live_stop is not None:
+            self._live_stop.set()
+            if self._live_session is not None:
+                self._live_session.stop()
+            self.live_button.configure(text="Stopping…", state=tk.DISABLED)
+            self._append("System", "Stopping Live Voice…")
+            return
+
+        import threading
+        from speech.gemini_live import GeminiLiveClient
+        from speech.live_voice import LiveVoiceSession
+
+        stop_event = threading.Event()
+        self._live_stop = stop_event
+        client = GeminiLiveClient(
+            model=self.config.get("gemini_live_model") or None,
+            system_instruction=self.config.get(
+                "system_prompt",
+                "You are Shahid Assistant, a helpful Windows desktop assistant.",
+            ),
+        )
+        session = LiveVoiceSession(client, sample_rate=self.voice.sample_rate)
+        self._live_session = session
+        self.live_button.configure(text="Stop Live Voice", state=tk.NORMAL)
+        self._append("System", "Live microphone and speaker streaming started. Press Stop Live Voice to interrupt and disconnect.")
 
         def work() -> None:
             try:
-                from speech.gemini_live import GeminiLiveClient
-
-                async def request_live(pcm: bytes):
-                    client = GeminiLiveClient(
-                        model=self.config.get("gemini_live_model") or None,
-                        system_instruction=self.config.get(
-                            "system_prompt",
-                            "You are Shahid Assistant, a helpful Windows desktop assistant.",
-                        )
-                    )
-                    try:
-                        return await client.audio_turn(pcm, self.voice.sample_rate)
-                    finally:
-                        await client.close()
-
-                pcm = self.voice.record_pcm_once()
-                heard, audio = asyncio.run(request_live(pcm))
-                self.root.after(0, lambda text=heard: self._append("Gemini Live", text or "[Audio response received]"))
-                self.voice.play_pcm(audio, sample_rate=24000)
+                asyncio.run(session.run(stop_event))
             except Exception as exc:
-                self.root.after(0, lambda error=str(exc): self._append("Gemini Live error", error))
+                self.root.after(0, lambda error=str(exc): self._append("Live Voice error", error))
             finally:
-                self.root.after(0, lambda: self._set_busy(False))
+                def finished():
+                    self._live_stop = None
+                    self._live_session = None
+                    self.live_button.configure(text="Start Live Voice", state=tk.NORMAL)
+                    self._append("System", "Live Voice stopped.")
+                self.root.after(0, finished)
 
-        threading.Thread(target=work, daemon=True).start()
+        threading.Thread(target=work, daemon=True, name="gemini-live-voice").start()
 
     def run(self) -> None:
         self.root.mainloop()
