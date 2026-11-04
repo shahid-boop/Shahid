@@ -1,50 +1,38 @@
 # Shahid Assistant — Windows 11
 
-A modular Windows desktop assistant based on the supplied architecture diagram.
+A modular Windows desktop assistant with chat, voice, local skills, task handling and an optional localhost dashboard.
 
-## Implemented modules
+## Implemented capabilities
 
-- Conversation runtime with local persistent transcript and bounded recent context
-- OpenAI-compatible chat provider, Gemini text provider, and a Gemini Live session mode
-- Tkinter desktop chat HUD with configurable always-on-top behavior and separate settings window
-- Push-to-talk microphone capture, Whisper speech-to-text and text-to-speech adapters
-- Gemini Live continuous microphone-to-speaker streaming session with a stop control (requires Gemini API key and working audio devices)\n- Compact and right-docked HUD layouts
-- Browser dashboard served on localhost with chat and status endpoints
-- Skill and plugin registries
-- Windows system health checks, allowlisted app detection/launch, and Settings page launcher
-- Workspace-scoped text file reading/creation and local video opening
-- Local reminders, opt-in Windows toast scheduler, web search, topic watchlist and scheduled topic polling\n- Durable local task queue with claim/complete/fail/retry lifecycle and an opt-in worker for explicitly registered task handlers
-- On-demand screen capture and on-demand webcam still-photo capture
-- Opt-in background system health polling module
-- Unit tests and Windows GitHub Actions workflow
-
-## Still incomplete / requires further work
-
-- Gemini Live text CLI is implemented; full-duplex live microphone capture and streaming speaker playback still need end-to-end integration
-- Rich animated HUD overlay, docking/compact modes and complete settings coverage
-- Production-grade Windows UI automation and permission/approval UX
-- External plugin package discovery/sandboxing is intentionally not enabled; plugins must be explicitly registered as trusted Python handlers
-- Persistent task execution and robust scheduled topic monitoring
-- End-to-end validation on a real Windows 11 PC, including microphone, camera, GPU/audio drivers and API provider connectivity
+- OpenAI-compatible and Gemini text providers with local persistent conversation memory
+- Gemini Live continuous microphone input and streaming speaker output, with an explicit stop control
+- Tkinter desktop HUD with always-on-top, compact and right-docked layouts
+- Push-to-talk Whisper transcription and text-to-speech
+- Localhost-only browser dashboard
+- Explicit skill and trusted plugin registries
+- Windows health checks, Settings launcher, allowlisted app launch and individually confirmed UI actions
+- Workspace-scoped file tools, on-demand screen capture and webcam still photos
+- Local reminders, opt-in Windows notifications and health polling
+- Topic watchlist with opt-in scheduled public-web polling
+- Durable task queue with claim/complete/fail/retry state and an opt-in worker for approved handlers
 
 ## Requirements
 
-- Windows 11
-- Python 3.11+
-- An API key for the selected cloud LLM provider
-- Microphone permission for push-to-talk
-- Optional webcam and internet connection for their respective features
+- Windows 11 and Python 3.11+
+- An API key for the selected LLM provider
+- Microphone/speakers for voice features
+- Optional webcam for camera capture
 
 ## Install
 
-Open PowerShell in the repository directory:
+Open PowerShell in the repository folder:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\install.ps1
 ```
 
-Or manually:
+Or install manually:
 
 ```powershell
 py -3.11 -m venv .venv
@@ -54,35 +42,37 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Edit `.env` and set either:
-- `OPENAI_API_KEY` and `OPENAI_MODEL` for `openai_compatible`, or
-- `GOOGLE_API_KEY` for `gemini`.
-
-Never commit your real `.env` file. It is ignored by Git.
+Set either `OPENAI_API_KEY` and `OPENAI_MODEL`, or `GOOGLE_API_KEY` in the local `.env` file. Never commit real credentials.
 
 ## Launch
 
 ```powershell
-# Desktop chat HUD with push-to-talk voice
+# Desktop HUD
 .\run.ps1
 
-# Settings window
+# Settings
 .\.venv\Scripts\python.exe main.py --settings
 
-# Browser dashboard (open http://127.0.0.1:8765)
+# Local browser dashboard: http://127.0.0.1:8765
 .\.venv\Scripts\python.exe main.py --server
 
-# CLI with explicit opt-in reminder notifications
+# Optional reminder notifications
 .\.venv\Scripts\python.exe main.py --reminders
 
-# CLI with explicit opt-in background health monitoring
+# Optional background system-health polling
 .\.venv\Scripts\python.exe main.py --monitor
 
-# Gemini Live text session
+# Optional scheduled topic polling (topics live in data/topics.json)
+.\.venv\Scripts\python.exe main.py --watch-topics
+
+# Optional worker for explicitly approved durable task kinds
+.\.venv\Scripts\python.exe main.py --run-tasks
+
+# Gemini Live text CLI
 .\.venv\Scripts\python.exe main.py --gemini-live
 ```
 
-Choose the engine in the settings window and restart the app after changing it. The HUD can be kept always on top from Settings. The **Start Live Voice** HUD control opens a continuous Gemini Live audio session; **Stop Live Voice** interrupts playback and closes the session. This requires `GOOGLE_API_KEY`, `google-genai`, `sounddevice`, a microphone and speakers. Echo cancellation and automatic barge-in detection are not included. Gemini Live text mode uses the separate `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL` settings: `python main.py --gemini-live`. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
+The HUD's **Start Live Voice** control opens a continuous Gemini Live audio session. **Stop Live Voice** interrupts playback and disconnects. This requires `GOOGLE_API_KEY`, `google-genai`, `sounddevice`, a microphone and speakers. Acoustic echo cancellation and voice-activity barge-in detection are not implemented; use the stop control to interrupt.
 
 ## CLI skills
 
@@ -93,11 +83,26 @@ Choose the engine in the settings window and restart the app after changing it. 
 /skill computer_settings {"page":"sound"}
 /skill camera_capture {"output_path":"camera.png","device_index":0}
 /skill windows_automation {"action":"open_notepad","confirmed":true}
+/skill windows_automation {"action":"click","x":400,"y":300,"confirmed":true}
 /plugins
 /plugin system_monitor {}
+/skill topic_monitoring {"action":"add","topic":"Python release notes"}
+/skill topic_monitoring {"action":"check"}
+/skill agent_tasks {"action":"add","task":"Search Python release notes","kind":"web_search","payload":{"query":"Python release notes"}}
+/skill agent_tasks {"action":"list"}
 ```
 
-Skills execute only when explicitly invoked. File tools are restricted to the local `workspace/` folder. File creation does not overwrite or delete existing files. Screen and camera capture are on-demand; they are not continuous. App launching uses an allowlist.
+Run `main.py --run-tasks` to execute queued tasks of registered kinds. Currently the worker registers only `web_search`. Unknown task kinds fail closed. Manual tasks remain stored until explicitly handled.
+
+## Safety boundaries
+
+- Plugins are registered explicitly and run in-process. Arbitrary third-party plugin discovery/import and OS-level sandboxing are **not** enabled. Register only code you trust.
+- UI automation is a limited allowlist: confirmed app launches, clicks, text entry, safe key presses and selected hotkeys. It is not unrestricted control.
+- File tools are restricted to `workspace/`; creation does not overwrite or delete existing files.
+- Microphone, camera and screen capture are activated only by explicit user actions.
+- Background reminders, health polling, topic polling and task processing are opt-in.
+- The dashboard binds to loopback. Do not expose it publicly without authentication and TLS.
+- API keys belong in the ignored local `.env` file or environment variables.
 
 ## Tests
 
@@ -106,15 +111,8 @@ Skills execute only when explicitly invoked. File tools are restricted to the lo
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-## Security
+GitHub Actions runs the same compile and unit-test commands on Windows. A passing CI run does not replace a real Windows 11 device check.
 
-- Keep API keys in the local ignored `.env` file or environment variables.
-- Do not expose the dashboard beyond localhost without authentication and TLS.
-- Microphone recording is push-to-talk, not always-on.
-- Camera and screen capture require explicit skill invocation.
-- Reminder and health monitoring loops are opt-in.
-- File access is workspace-scoped; create operation never overwrites/deletes.
+## Verification limits
 
-## Project status
-
-This is an implementation draft, not a production-verified release. Automated CI must pass on the current branch, and real Windows 11 device testing with configured API credentials is still required. Third-party plugin sandboxing, unrestricted UI automation, animated HUD effects, echo cancellation and speech barge-in detection are not claimed as implemented.
+The code and unit-test workflow can be checked in CI. This environment cannot physically test your PC's microphone, speakers, webcam, GPU/audio drivers or API credentials. Full-device validation must be performed on the target Windows 11 machine before treating this as a production release.
