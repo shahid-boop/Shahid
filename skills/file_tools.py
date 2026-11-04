@@ -24,7 +24,7 @@ def _relative(path: Path) -> str:
 
 def list_files(_: dict[str, Any] | None = None) -> dict[str, Any]:
     WORKSPACE.mkdir(parents=True, exist_ok=True)
-    files = sorted(str(p.relative_to(WORKSPACE)) for p in WORKSPACE.rglob("*") if p.is_file())
+    files = sorted(_relative(p) for p in WORKSPACE.rglob("*") if p.is_file())
     return {"workspace": str(WORKSPACE), "files": files}
 
 def read_file(payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -45,7 +45,7 @@ def write_file(payload: dict[str, Any] | None = None) -> dict[str, Any]:
         raise ValueError("Content is too large (maximum 256 KB).")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
-    return {"written": str(path.relative_to(WORKSPACE)), "bytes": len(content.encode("utf-8"))}
+    return {"written": _relative(path), "bytes": len(content.encode("utf-8"))}
 
 def register_file_skills(registry) -> None:
     registry.register("list_workspace_files", list_files)
