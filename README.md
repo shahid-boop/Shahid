@@ -21,7 +21,7 @@ A modular Windows desktop assistant based on the supplied architecture diagram.
 ## Still incomplete / requires further work
 
 - Gemini Live text CLI is implemented; full-duplex live microphone capture and streaming speaker playback still need end-to-end integration
-- Full-featured HUD overlay, animated/always-visible desktop widget and complete settings coverage
+- Rich animated HUD overlay, docking/compact modes and complete settings coverage
 - Production-grade Windows UI automation and permission/approval UX
 - External plugin package discovery/sandboxing is intentionally not enabled; plugins must be explicitly registered as trusted Python handlers
 - Persistent task execution and robust scheduled topic monitoring
@@ -74,6 +74,12 @@ Never commit your real `.env` file. It is ignored by Git.
 
 # CLI with explicit opt-in reminder notifications
 .\.venv\Scripts\python.exe main.py --reminders
+
+# CLI with explicit opt-in background health monitoring
+.\.venv\Scripts\python.exe main.py --monitor
+
+# Gemini Live text session
+.\.venv\Scripts\python.exe main.py --gemini-live
 ```
 
 Choose the engine in the settings window and restart the app after changing it. The HUD can be kept always on top from Settings. The **Gemini Live** HUD button records one utterance and returns a spoken answer; it is not yet a continuously streaming, interruptible full-duplex voice session. Gemini Live text mode uses the separate `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL` settings: `python main.py --gemini-live`. The browser dashboard binds to loopback only and must not be exposed to the public internet without authentication and TLS.
