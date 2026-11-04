@@ -1,57 +1,46 @@
 # Shahid Assistant — Windows 11
 
-This is the **diagram-first implementation branch**. It starts from the repository's clean `main` branch and adds a modular Python foundation. The original `main` branch and the earlier `architecture-foundation` branch are left unchanged.
+A modular Python desktop assistant foundation, developed on the `diagram-first-implementation` branch. Existing `main` and `architecture-foundation` branches are preserved.
 
-## Foundation modules implemented
-
-- `main.py`: CLI, desktop UI and dashboard entry point
-- `ui.py`: Tkinter desktop chat HUD
-- `server.py`: browser dashboard and JSON chat endpoint, bound to loopback only
-- `engine_pipeline.py`: provider boundary for OpenAI-compatible chat APIs
-- `config_manager.py`: environment configuration and local `.env` loading
-- `memory_manager.py`: bounded, persistent local conversation history
-- `skills/registry.py`: explicit allowlist for local skills
-- `tests/test_foundation.py`: unit tests for memory, configuration and skill registration
-
-The original diagram remains in `diagram.png`. This first coding pass establishes the core runtime and UI/dashboard paths. Gemini Live audio, speech recognition/TTS, Windows computer-control skills, the complete animated HUD and hardware validation are **not yet complete** and are not claimed as complete.
-
-## Requirements
-
-- Windows 11
-- Python 3.11 or later
-- An API key for an OpenAI-compatible provider to use AI chat
+## Implemented features
+- CLI chat, Tkinter desktop chat HUD (`--ui`), and localhost browser dashboard (`--server`).
+- OpenAI-compatible `/chat/completions` and Google Gemini text API (`AI_PROVIDER=gemini`).
+- Local bounded conversation history in `data/conversations.json`.
+- Optional microphone input and speech output (`--voice`) using SpeechRecognition and pyttsx3.
+- Allowlisted Windows tools: system info, launch Notepad/Calculator/Paint/Explorer, and open HTTP(S) websites.
+- CLI tool commands: `/skills`, `/run system_info {}`, `/run launch_app {"name":"notepad"}`, `/run open_website {"url":"https://example.com"}`.
+- Windows GitHub Actions compile and unit-test workflow.
 
 ## Setup
-
-In PowerShell, from the repository folder:
+Install Python 3.11+. In PowerShell:
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 Copy-Item .env.example .env
-# Edit .env and set OPENAI_API_KEY
+python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
-python main.py --ui
 ```
 
-For the browser dashboard:
+Configure local `.env`:
+- OpenAI-compatible: `AI_PROVIDER=openai`, set `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL`.
+- Gemini: `AI_PROVIDER=gemini`, set `GOOGLE_API_KEY`. Text adapter currently uses `gemini-2.5-flash`.
 
-```powershell
-python main.py --server
-```
+Run:
+- `python main.py --chat` — terminal chat
+- `python main.py --ui` — Tkinter chat HUD
+- `python main.py --server` — local browser dashboard at http://127.0.0.1:8765
+- `python main.py --voice` — optional mic + speech mode (install voice requirements first)
 
-Then open http://127.0.0.1:8765. The dashboard intentionally refuses non-loopback binding. Never commit a real API key or the local `.env` file.
+Voice packages: `python -m pip install -r requirements-voice.txt`. Recognition uses Google's online service and needs internet. Urdu recognition requests `ur-PK`; actual accuracy and TTS accent/gender depend on installed Windows voices and audio hardware. This is not Gemini Live audio.
 
-For terminal chat run `python main.py --chat` (or simply `python main.py`).
+## Safety and limitations
+- Dashboard is loopback-only; it is not exposed to the public network.
+- Local tools are allowlisted; arbitrary shell execution is not enabled.
+- Conversation history is local. CLI `/clear` clears the default conversation.
+- Never commit `.env` or API keys.
+- Webcam, full desktop vision/control, wake-word, animated HUD, Gemini Live streaming, and physical device testing are not implemented.
+- CI cannot verify the user's own microphone, speakers, or API credentials. Run tests and manually verify those on the target PC.
 
-## Security and limitations
-
-- The dashboard binds only to loopback and does not expose configuration or credentials.
-- Skills run only when explicitly registered. No arbitrary plugin imports or code execution are enabled.
-- Conversation history is stored locally in `data/conversations.json`; use `/clear` in CLI to clear the default conversation.
-- Provider chat currently supports OpenAI-compatible `/chat/completions` APIs. Gemini Live and audio providers are follow-up work.
-- Do not commit API keys or share your local `.env` file.
-
-## Validation status
-
-Unit tests are included and a GitHub Actions workflow runs compilation and tests on Windows. A passing CI run does not replace testing on the actual target PC. This environment has not tested the user's physical microphone, speakers, webcam, Windows automation or provider credentials.
+## Validation
+Run `python -m unittest discover -s tests -v`. GitHub Actions compiles the project and runs unit tests on Windows Python 3.11.
