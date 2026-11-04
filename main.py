@@ -5,6 +5,7 @@ import argparse
 import json
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from assistant_runtime import AssistantRuntime
@@ -32,7 +33,7 @@ def main() -> None:
     parser.add_argument("--ui", action="store_true", help="Launch the desktop chat HUD")
     parser.add_argument("--server", action="store_true", help="Launch the local dashboard API")
     parser.add_argument("--settings", action="store_true", help="Open assistant settings")
-    parser.add_argument("--reminders", action="store_true", help="Run opt-in reminder notifications")
+    parser.add_argument("--reminders", action="store_true", help="Enable reminder notifications")
     args = parser.parse_args()
 
     if args.settings:
@@ -68,44 +69,48 @@ def main() -> None:
         launch(runtime.respond, voice)
         return
 
-    reminder_scheduler = None
+    scheduler = None
     if args.reminders:
         from skills.reminder_scheduler import ReminderScheduler
-        reminder_scheduler = ReminderScheduler()
-        reminder_scheduler.start()
-        print("Reminder notifications enabled. Press Ctrl+C to stop.")
+        scheduler = ReminderScheduler()
+        scheduler.start()
+        print("Reminder notifications enabled.")
 
     print("CLI mode. Type /help for commands, /exit to quit.")
-    while True:
-        try:
-            message = input("You> ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            break
-        if message.lower() in {"/exit", "/quit"}:
-            break
-        if message == "/help":
-            print("/skills — list skills\n/skill NAME JSON — run a skill explicitly\n/exit — quit")
-            continue
-        if message == "/skills":
-            print(json.dumps(runtime.skills.list_skills(), indent=2))
-            continue
-        if message.startswith("/skill "):
+    try:
+        while True:
             try:
-                _, name, raw = message.split(" ", 2)
-                arguments = json.loads(raw)
-                if not isinstance(arguments, dict):
-                    raise ValueError("Skill arguments must be a JSON object.")
-                print(json.dumps(runtime.run_skill(name, **arguments), indent=2, default=str))
+                message = input("You> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            if message.lower() in {"/exit", "/quit"}:
+                break
+            if message == "/help":
+                print("/skills — list skills\n/skill NAME JSON — run a skill explicitly\n/exit — quit")
+                continue
+            if message == "/skills":
+                print(json.dumps(runtime.skills.list_skills(), indent=2))
+                continue
+            if message.startswith("/skill "):
+                try:
+                    _, name, raw = message.split(" ", 2)
+                    arguments = json.loads(raw)
+                    if not isinstance(arguments, dict):
+                        raise ValueError("Skill arguments must be a JSON object.")
+                    print(json.dumps(runtime.run_skill(name, **arguments), indent=2, default=str))
+                except Exception as exc:
+                    print(f"Skill error> {exc}")
+                continue
+            if not message:
+                continue
+            try:
+                print(f"Assistant> {runtime.respond(message)}")
             except Exception as exc:
-                print(f"Skill error> {exc}")
-            continue
-        if not message:
-            continue
-        try:
-            print(f"Assistant> {runtime.respond(message)}")
-        except Exception as exc:
-            print(f"Error> {exc}")
+                print(f"Error> {exc}")
+    finally:
+        if scheduler is not None:
+            scheduler.stop()
 
 
 if __name__ == "__main__":
