@@ -114,13 +114,14 @@ class ModuleTests(unittest.TestCase):
             self.assertEqual(result["status"], "completed")
             self.assertEqual(result["result"]["query"], "Python release")
 
-    def test_task_worker_fails_unregistered_task_kind(self):
+    def test_task_worker_leaves_unregistered_task_kind_queued(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = AgentTasksSkill(Path(tmp) / "tasks.json")
-            item = store.run(action="add", task="unsafe task", kind="arbitrary_code")
+            item = store.run(action="add", task="manual task", kind="manual")
             result = AgentTaskWorker({}, store=store).run_once()
-            self.assertEqual(result["id"], item["id"])
-            self.assertEqual(result["status"], "failed")
+            self.assertIsNone(result)
+            self.assertEqual(store.run(action="list")[0]["id"], item["id"])
+            self.assertEqual(store.run(action="list")[0]["status"], "queued")
 
     def test_topic_scheduler_rejects_aggressive_polling(self):
         with self.assertRaises(ValueError):
