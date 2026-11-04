@@ -4,6 +4,9 @@ from __future__ import annotations
 import argparse
 import json
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from assistant_runtime import AssistantRuntime
 from config_manager import load_config
 from memory_manager import MemoryManager
