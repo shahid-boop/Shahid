@@ -49,8 +49,13 @@ def main() -> None:
         return
 
     if args.ui:
+        from speech.voice_controller import WindowsVoiceController
         from ui import launch
-        launch(runtime.respond)
+        voice = WindowsVoiceController(
+            sample_rate=int(config.get("voice_sample_rate", 16000)),
+            seconds=int(config.get("voice_record_seconds", 6)),
+        )
+        launch(runtime.respond, voice)
         return
 
     print("CLI mode. Type /help for commands, /exit to quit.")
