@@ -20,7 +20,7 @@ def _target(payload: dict[str, Any] | None) -> Path:
 
 def _relative(path: Path) -> str:
     # os.path.relpath handles Windows case-normalized temporary paths reliably.
-    return os.path.relpath(str(path), str(WORKSPACE.resolve()))
+    return os.path.relpath(str(path), str(WORKSPACE.resolve())).replace(os.sep, "/")
 
 def list_files(_: dict[str, Any] | None = None) -> dict[str, Any]:
     WORKSPACE.mkdir(parents=True, exist_ok=True)
