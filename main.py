@@ -14,14 +14,20 @@ from config_manager import load_config
 from memory_manager import MemoryManager
 from provider_registry import build_engine_pipeline
 from skills.registry import build_skill_loader
+from plugin_loader import PluginLoader
 
 
 def build_runtime(config: dict) -> AssistantRuntime:
+    skills = build_skill_loader()
+    plugins = PluginLoader()
+    for name in ("system_monitor", "web_search", "reminders", "proactive_checks"):
+        plugins.register(name, lambda _name=name, **arguments: skills.run(_name, **arguments))
     return AssistantRuntime(
         engines=build_engine_pipeline(config),
         memory=MemoryManager(),
         provider_name=config.get("engine", "openai_compatible"),
-        skills=build_skill_loader(),
+        skills=skills,
+        plugins=plugins,
         system_prompt=config.get(
             "system_prompt",
             "You are Shahid Assistant, a helpful Windows desktop AI assistant.",
@@ -129,6 +135,19 @@ def main() -> None:
                 continue
             if message == "/skills":
                 print(json.dumps(runtime.skills.list_skills(), indent=2))
+                continue
+            if message == "/plugins":
+                print(json.dumps(runtime.plugins.list_plugins(), indent=2))
+                continue
+            if message.startswith("/plugin "):
+                try:
+                    _, name, raw = message.split(" ", 2)
+                    arguments = json.loads(raw)
+                    if not isinstance(arguments, dict):
+                        raise ValueError("Plugin arguments must be a JSON object.")
+                    print(json.dumps(runtime.run_plugin(name, **arguments), indent=2, default=str))
+                except Exception as exc:
+                    print(f"Plugin error> {exc}")
                 continue
             if message.startswith("/skill "):
                 try:
