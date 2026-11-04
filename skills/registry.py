@@ -13,6 +13,7 @@ from skills.screen_camera import ScreenCaptureSkill
 from skills.system_monitor import SystemMonitorSkill
 from skills.video_player import VideoPlayerSkill
 from skills.web_search import WebSearchSkill
+from skills.windows_automation import WindowsAutomationSkill
 from skills.loader import SkillLoader
 
 
@@ -32,6 +33,7 @@ def build_skill_loader() -> SkillLoader:
         SystemMonitorSkill(),
         VideoPlayerSkill(),
         WebSearchSkill(),
+        WindowsAutomationSkill(),
     ):
         loader.register(skill)
     return loader
