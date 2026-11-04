@@ -116,6 +116,15 @@ def main() -> None:
 
     scheduler = None
     monitor = None
+    topic_scheduler = None
+    if args.watch_topics:
+        from skills.topic_poll_scheduler import TopicPollingScheduler
+        topic_scheduler = TopicPollingScheduler(
+            interval_seconds=int(config.get("topic_poll_interval_seconds", 3600)),
+            on_results=lambda result: print(f"Topic updates> {json.dumps(result, default=str)}"),
+        )
+        topic_scheduler.start()
+        print("Scheduled topic polling enabled.")
     if args.monitor:
         from skills.background_monitoring import BackgroundMonitoring
         monitor = BackgroundMonitoring(
@@ -180,6 +189,8 @@ def main() -> None:
             scheduler.stop()
         if monitor is not None:
             monitor.stop()
+        if topic_scheduler is not None:
+            topic_scheduler.stop()
 
 
 if __name__ == "__main__":
