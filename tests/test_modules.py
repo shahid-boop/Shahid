@@ -36,7 +36,7 @@ class ModuleTests(unittest.TestCase):
         self.assertIn("CURRENT_USER_MESSAGE: current request", prompt)
 
     def test_untrusted_text_removes_control_characters_and_is_bounded(self):
-        cleaned = AssistantRuntime._sanitize_untrusted_text("abc\\x00def", max_length=5)
+        cleaned = AssistantRuntime._sanitize_untrusted_text("abc\\x00def", max_length=7)
         self.assertEqual(cleaned, "abc def")
         self.assertEqual(len(AssistantRuntime._sanitize_untrusted_text("x" * 20, 8)), 8)
 
