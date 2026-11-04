@@ -34,14 +34,19 @@ class AssistantWindow:
             state=tk.NORMAL if voice is not None else tk.DISABLED,
         )
         self.voice_button.pack(side=tk.RIGHT, padx=(8, 0))
-        self.compact_button = tk.Button(bottom, text="Compact", command=self._toggle_compact)\n        self.compact_button.pack(side=tk.RIGHT, padx=(8, 0))\n        self.dock_button = tk.Button(bottom, text="Dock Right", command=self._dock_right)\n        self.dock_button.pack(side=tk.RIGHT, padx=(8, 0))
+        self.compact_button = tk.Button(bottom, text="Compact", command=self._toggle_compact)
+        self.compact_button.pack(side=tk.RIGHT, padx=(8, 0))
+        self.dock_button = tk.Button(bottom, text="Dock Right", command=self._dock_right)
+        self.dock_button.pack(side=tk.RIGHT, padx=(8, 0))
         self.live_button = tk.Button(
             bottom, text="Start Live Voice", command=self._gemini_live,
             state=tk.NORMAL if voice is not None else tk.DISABLED,
         )
         self.live_button.pack(side=tk.RIGHT, padx=(8, 0))
         self._compact = False
-        self._live_stop = None\n        self._live_session = None\n        self._append("System", "Assistant interface ready. Voice recording is push-to-talk only until Live Voice is explicitly started.")
+        self._live_stop = None
+        self._live_session = None
+        self._append("System", "Assistant interface ready. Voice recording is push-to-talk only until Live Voice is explicitly started.")
 
     def _toggle_compact(self) -> None:
         self._compact = not self._compact
@@ -69,7 +74,9 @@ class AssistantWindow:
 
     def _append(self, speaker: str, message: str) -> None:
         self.output.configure(state="normal")
-        self.output.insert(tk.END, f"{speaker}: {message}\n\n")
+        self.output.insert(tk.END, f"{speaker}: {message}
+
+")
         self.output.see(tk.END)
         self.output.configure(state="disabled")
 
