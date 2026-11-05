@@ -2,7 +2,8 @@
 from __future__ import annotations
 import threading
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
+from tkinter import messagebox
 from config_manager import Settings
 from engine_pipeline import ChatEngine, ProviderError
 from memory_manager import MemoryManager
