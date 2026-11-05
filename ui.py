@@ -107,7 +107,7 @@ class AssistantUI:
                     SpeechEngine().speak(reply)
                 except Exception as exc:
                     status = "Ready · voice output unavailable"
-                    reply += f"\\n\\n[Voice output unavailable: {exc}]"
+                    reply += f"\n\n[Voice output unavailable: {exc}]"
             result = (reply, status)
         except ProviderError as exc:
             result = (f"Provider error: {exc}", "Provider error")
