@@ -40,7 +40,7 @@ Configure `GOOGLE_API_KEY` for Gemini Live. Live API model access and account av
 - Gemini Live adapter expects the Google GenAI Live API and PCM16 frames supplied by an audio capture loop; this repository does not yet provide a polished duplex audio-device UI.
 - Whisper accepts an audio file; live microphone chunking and diarization are not included.
 - Wake-word detection accepts PCM16 frames; a microphone streaming loop and custom wake-word model provisioning are not bundled.
-- Camera HUD produces frames through a callback; embedding a polished video widget in Tkinter remains a UI integration task.
+- Camera HUD produces frames through a callback; the desktop HUD now provides a consent-gated local camera preview with a Stop Camera control.
 - TopicMonitor is opt-in and supports RSS/Atom keyword matching. Start it from an app lifecycle and supply a callback; no monitor runs until explicitly started.
 - Windows settings are limited to three documented HKCU preferences. No arbitrary registry edits or administrator-level system changes.
 - Desktop automation supports bounded clicks and typing only. It does not execute shell commands, bypass UAC, or autonomously operate arbitrary apps.
@@ -85,3 +85,21 @@ Run `python main.py --ui` to open the Tkinter desktop HUD. The HUD now has:
 - **Per-action approval:** screen/camera capture, desktop input, Windows preference changes, plugin installation, topic-monitor startup and local state-changing actions require a confirmation dialog in the HUD. The existing skill handlers still enforce their own confirmation flags where applicable. A rejected confirmation runs no action.
 
 The Tools tab dispatches only registered skills; it is not a general shell or arbitrary-code console. Optional dependencies, API keys and real Windows hardware are still required for the corresponding integrations. Gemini Live remains available through the explicit `python main.py --live` command; the HUD does not silently start an always-on microphone or camera.
+
+## Latest desktop HUD integration
+The desktop HUD now includes manual, consent-gated controls for:
+- **Gemini Live:** start/stop microphone and speaker session; the audio runner reacts to Gemini Live interruption events by aborting queued playback so a user can barge in.
+- **Camera Preview:** opens the webcam only after confirmation, displays frames locally, and provides an explicit Stop Camera control. No frames are uploaded.
+- **Whisper File:** select a local audio file and transcribe it with the optional faster-whisper dependency in a background worker.
+- **Wake Word:** a separately confirmed, bounded 30-second microphone listen; it ends on detection or timeout.
+- **Tools window:** tool execution now runs in a background worker so slow optional model loads do not freeze the Tkinter window.
+
+The camera, Whisper and wake-word controls require their optional dependencies from the relevant requirements files. The EXE build workflow currently packages the core application; optional native/audio/vision/model dependencies are not guaranteed to be bundled in the EXE and may need a Python installation with the optional requirements. Real microphone, speaker, camera, and echo-cancellation behavior still requires Windows 11 hardware validation.
+
+## Remaining production work (not claimed complete)
+- Validate Gemini Live barge-in and audio-device cleanup on physical Windows 11 hardware; acoustic echo cancellation is not implemented by this code.
+- Add continuous microphone streaming for Whisper (current HUD transcription is file-based).
+- Integrate wake-word detection as a deliberate user-configured session trigger; it is currently a bounded, manual listen.
+- Build a real visual computer-control agent only with additional per-action approvals and screen-boundary protections; current automation is bounded click/type/screenshot.
+- A production plugin marketplace still needs trusted signing-key lifecycle, hosted catalog/publisher review, revocation/update service, and an OS-level isolated runtime. Current code verifies local signed packages but does not sandbox or auto-execute plugin code.
+- Run end-to-end tests with actual Windows 11 microphone, speakers, camera, and supported API credentials.
