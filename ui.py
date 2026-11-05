@@ -2,16 +2,18 @@
 from __future__ import annotations
 import threading
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from config_manager import Settings
 from engine_pipeline import ChatEngine, ProviderError
 from memory_manager import MemoryManager
+from desktop.live_audio_controller import LiveAudioController
 
 class AssistantUI:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or Settings.load()
         self.engine = ChatEngine(self.settings)
         self.memory = MemoryManager()
+        self._live_controller: LiveAudioController | None = None
         self.root = tk.Tk()
         self.root.title("Shahid Assistant")
         self.root.geometry("720x560")
@@ -56,16 +58,20 @@ class AssistantUI:
                                       bg="#263a59", fg="#edf2ff", activebackground="#354d70",
                                       relief="flat", padx=12, pady=7)
         self.tools_button.pack(side="right", padx=(8, 0))
+        self.live_stop_button = tk.Button(row, text="Stop Live", command=self.stop_live_voice,
+                                          bg="#6b3440", fg="#ffffff", relief="flat",
+                                          padx=10, pady=7, state="disabled")
+        self.live_stop_button.pack(side="right", padx=(8, 0))
+        self.live_start_button = tk.Button(row, text="Gemini Live", command=self.start_live_voice,
+                                           bg="#344d79", fg="#ffffff", relief="flat",
+                                           padx=10, pady=7)
+        self.live_start_button.pack(side="right", padx=(8, 0))
         self.send_button.configure(command=self.send_with_voice)
         self.input.bind("<Control-Return>", self._send_shortcut)
-        self.input.bind("<Control-Return>", self._send_shortcut_with_voice)
         self._append("assistant", "Ready. Configure .env to connect an AI provider.")
+        self._append("assistant", "Gemini Live is manual-start only and asks before microphone access.")
 
     def _send_shortcut(self, _event):
-        self.send()
-        return "break"
-
-    def _send_shortcut_with_voice(self, _event):
         self.send_with_voice()
         return "break"
 
@@ -80,6 +86,73 @@ class AssistantUI:
         self._tools_window.title("Shahid Assistant · Tools")
         self._tools_window.geometry("720x680")
         SkillConsole(self._tools_window, build_registry()).pack(fill="both", expand=True)
+
+    def _live_callback(self, *args) -> None:
+        try:
+            self.root.after(0, self._live_state, *args)
+        except tk.TclError:
+            pass
+
+    def _live_state(self, state: str, detail: str = "") -> None:
+        if state == "connecting":
+            self.status.configure(text="Gemini Live · Connecting / listening")
+            self.live_start_button.configure(state="disabled")
+            self.live_stop_button.configure(state="normal")
+        elif state == "error":
+            self.status.configure(text="Gemini Live error")
+            self.live_start_button.configure(state="normal")
+            self.live_stop_button.configure(state="disabled")
+            self._append("assistant", f"Gemini Live unavailable: {detail}")
+        else:
+            self.status.configure(text="Ready")
+            self.live_start_button.configure(state="normal")
+            self.live_stop_button.configure(state="disabled")
+
+    def _live_transcript(self, kind: str, value: str) -> None:
+        try:
+            self.root.after(0, self._append, "assistant", f"{kind}: {value}")
+        except tk.TclError:
+            pass
+
+    def start_live_voice(self) -> None:
+        if self._live_controller is not None and self._live_controller.running:
+            self.status.configure(text="Gemini Live is already active")
+            return
+        if not self.settings.google_api_key:
+            messagebox.showerror(
+                "Gemini Live setup",
+                "GOOGLE_API_KEY is missing. Add it to .env before starting Gemini Live.",
+                parent=self.root,
+            )
+            return
+        approved = messagebox.askyesno(
+            "Allow Gemini Live microphone and speaker",
+            "Start a real-time Gemini Live session now?\n\n"
+            "This will open your microphone and speaker and send microphone audio "
+            "to Google's Gemini Live service until you press Stop Live. Continue?",
+            parent=self.root,
+        )
+        if not approved:
+            self.status.configure(text="Gemini Live cancelled")
+            return
+        self._live_controller = LiveAudioController(
+            self.settings.google_api_key,
+            on_state=self._live_callback,
+            on_transcript=self._live_transcript,
+        )
+        try:
+            started = self._live_controller.start(approved=True)
+            if not started:
+                self.status.configure(text="Gemini Live did not start")
+        except Exception as exc:
+            self._live_state("error", str(exc))
+
+    def stop_live_voice(self) -> None:
+        if self._live_controller is None or not self._live_controller.running:
+            self._live_state("stopped")
+            return
+        self._live_controller.stop()
+        self.status.configure(text="Gemini Live · Stopping")
 
     def send_with_voice(self) -> None:
         message = self.input.get("1.0", "end").strip()
