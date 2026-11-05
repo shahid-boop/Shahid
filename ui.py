@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 from config_manager import Settings
 from engine_pipeline import ChatEngine, ProviderError
 from memory_manager import MemoryManager
@@ -15,6 +15,8 @@ class AssistantUI:
         self.engine = ChatEngine(self.settings)
         self.memory = MemoryManager()
         self._live_controller: LiveAudioController | None = None
+        self._hud_video = None
+        self._camera_photo = None
         self.root = tk.Tk()
         self.root.title("Shahid Assistant")
         self.root.geometry("720x560")
@@ -32,6 +34,8 @@ class AssistantUI:
         outer.pack(fill="both", expand=True)
         ttk.Label(outer, text="◉  SHAHID ASSISTANT", style="Title.TLabel").pack(anchor="w")
         ttk.Label(outer, text="Windows 11 · Local desktop interface").pack(anchor="w", pady=(4, 12))
+        self.video_preview = ttk.Label(outer, text="Camera preview is off", anchor="center")
+        self.video_preview.pack(fill="x", pady=(0, 8))
         self.output = tk.Text(outer, wrap="word", bg="#121b30", fg="#edf2ff",
                               insertbackground="white", relief="flat", padx=12, pady=12,
                               font=("Segoe UI", 10), state="disabled")
@@ -67,6 +71,28 @@ class AssistantUI:
                                            bg="#344d79", fg="#ffffff", relief="flat",
                                            padx=10, pady=7)
         self.live_start_button.pack(side="right", padx=(8, 0))
+        media_row = ttk.Frame(outer)
+        media_row.pack(fill="x", pady=(8, 0))
+        self.camera_start_button = tk.Button(
+            media_row, text="Camera Preview", command=self.start_camera_preview,
+            bg="#263a59", fg="#edf2ff", relief="flat", padx=10, pady=6,
+        )
+        self.camera_start_button.pack(side="left")
+        self.camera_stop_button = tk.Button(
+            media_row, text="Stop Camera", command=self.stop_camera_preview,
+            bg="#6b3440", fg="#ffffff", relief="flat", padx=10, pady=6, state="disabled",
+        )
+        self.camera_stop_button.pack(side="left", padx=(6, 0))
+        self.transcribe_button = tk.Button(
+            media_row, text="Whisper File", command=self.transcribe_audio_file,
+            bg="#263a59", fg="#edf2ff", relief="flat", padx=10, pady=6,
+        )
+        self.transcribe_button.pack(side="left", padx=(6, 0))
+        self.wake_button = tk.Button(
+            media_row, text="Wake Word (30s)", command=self.listen_for_wake_word,
+            bg="#263a59", fg="#edf2ff", relief="flat", padx=10, pady=6,
+        )
+        self.wake_button.pack(side="left", padx=(6, 0))
         self.send_button.configure(command=self.send_with_voice)
         self.input.bind("<Control-Return>", self._send_shortcut)
         self.input.bind("<Control-Return>", self._send_shortcut_with_voice)
@@ -160,6 +186,144 @@ class AssistantUI:
             return
         self._live_controller.stop()
         self.status.configure(text="Gemini Live · Stopping")
+
+    def start_camera_preview(self) -> None:
+        if self._hud_video is not None:
+            self.status.configure(text="Camera preview is already active")
+            return
+        approved = messagebox.askyesno(
+            "Allow camera preview",
+            "Open the webcam and show a live preview in Shahid Assistant? "
+            "Frames stay local and are not uploaded. Continue?",
+            parent=self.root,
+        )
+        if not approved:
+            self.status.configure(text="Camera preview cancelled")
+            return
+        try:
+            from vision.hud_video import HudVideo
+            self._hud_video = HudVideo(on_frame=self._camera_frame, fps=10)
+            self._hud_video.start()
+            self.camera_start_button.configure(state="disabled")
+            self.camera_stop_button.configure(state="normal")
+            self.status.configure(text="Camera preview active")
+        except Exception as exc:
+            self._hud_video = None
+            messagebox.showerror("Camera unavailable", str(exc), parent=self.root)
+            self.status.configure(text="Camera unavailable")
+
+    def _camera_frame(self, frame) -> None:
+        try:
+            import cv2
+            from PIL import Image
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(rgb)
+            self.root.after(0, self._show_camera_frame, image)
+        except Exception:
+            # A failed preview frame should not crash the camera capture thread.
+            pass
+
+    def _show_camera_frame(self, image) -> None:
+        try:
+            from PIL import ImageTk
+            image.thumbnail((360, 180))
+            self._camera_photo = ImageTk.PhotoImage(image)
+            self.video_preview.configure(image=self._camera_photo, text="")
+        except (tk.TclError, RuntimeError):
+            pass
+
+    def stop_camera_preview(self) -> None:
+        video, self._hud_video = self._hud_video, None
+        if video is not None:
+            try:
+                video.stop()
+            except Exception as exc:
+                self.status.configure(text=f"Camera stop warning: {exc}")
+        self._camera_photo = None
+        self.video_preview.configure(image="", text="Camera preview is off")
+        self.camera_start_button.configure(state="normal")
+        self.camera_stop_button.configure(state="disabled")
+
+    def transcribe_audio_file(self) -> None:
+        path = filedialog.askopenfilename(
+            parent=self.root,
+            title="Choose an audio file for local Whisper transcription",
+            filetypes=[
+                ("Audio files", "*.wav *.mp3 *.m4a *.flac *.ogg *.aac"),
+                ("All files", "*.*"),
+            ],
+        )
+        if not path:
+            return
+        self.transcribe_button.configure(state="disabled")
+        self.status.configure(text="Whisper · Loading model and transcribing…")
+        threading.Thread(
+            target=self._transcribe_audio_worker,
+            args=(path,),
+            name="shahid-whisper",
+            daemon=True,
+        ).start()
+
+    def _transcribe_audio_worker(self, path: str) -> None:
+        try:
+            from realtime.whisper_transcriber import WhisperTranscriber
+            result = WhisperTranscriber(model_size="small").transcribe(path)
+            rendered = result.get("text", "")
+            if not rendered:
+                rendered = "No speech detected in the selected audio file."
+            status = "Whisper transcription complete"
+        except Exception as exc:
+            rendered = f"Whisper unavailable: {type(exc).__name__}: {exc}"
+            status = "Whisper error"
+        try:
+            self.root.after(0, self._finish_transcription, rendered, status)
+        except tk.TclError:
+            pass
+
+    def _finish_transcription(self, rendered: str, status: str) -> None:
+        self._append("assistant", f"Whisper: {rendered}")
+        self.status.configure(text=status)
+        self.transcribe_button.configure(state="normal")
+
+    def listen_for_wake_word(self) -> None:
+        approved = messagebox.askyesno(
+            "Allow bounded wake-word listening",
+            "Listen through the microphone for up to 30 seconds for a wake word? "
+            "Listening stops automatically after detection or timeout. Continue?",
+            parent=self.root,
+        )
+        if not approved:
+            self.status.configure(text="Wake-word listening cancelled")
+            return
+        self.wake_button.configure(state="disabled")
+        self.status.configure(text="Wake-word listener · up to 30 seconds")
+        threading.Thread(
+            target=self._wake_word_worker,
+            name="shahid-wake-word",
+            daemon=True,
+        ).start()
+
+    def _wake_word_worker(self) -> None:
+        try:
+            from skills.audio_tools import listen_for_wake_word
+            result = listen_for_wake_word({"timeout_seconds": 30})
+            rendered = (
+                "Wake word detected: " + ", ".join(result.get("models", []))
+                if result.get("detected") else "No wake word detected before timeout."
+            )
+            status = "Wake-word check complete"
+        except Exception as exc:
+            rendered = f"Wake-word listener unavailable: {type(exc).__name__}: {exc}"
+            status = "Wake-word error"
+        try:
+            self.root.after(0, self._finish_wake_word, rendered, status)
+        except tk.TclError:
+            pass
+
+    def _finish_wake_word(self, rendered: str, status: str) -> None:
+        self._append("assistant", rendered)
+        self.status.configure(text=status)
+        self.wake_button.configure(state="normal")
 
     def send_with_voice(self) -> None:
         message = self.input.get("1.0", "end").strip()
@@ -268,6 +432,8 @@ class AssistantUI:
     def close(self) -> None:
         if self._live_controller is not None:
             self._live_controller.stop()
+        if self._hud_video is not None:
+            self.stop_camera_preview()
         self.root.destroy()
 
     def run(self) -> None:
