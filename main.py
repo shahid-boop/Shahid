@@ -144,7 +144,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.live:
-            import asyncio
+            import asyncio, os
             from realtime.audio_io import run_gemini_live_audio
             settings = Settings.load()
             asyncio.run(run_gemini_live_audio(settings.google_api_key, on_transcript=lambda kind, value: print(f"\\n{kind}: {value}")))
