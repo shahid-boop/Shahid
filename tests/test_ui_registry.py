@@ -8,6 +8,7 @@ class DesktopRegistryTests(unittest.TestCase):
         names = set(build_registry().names())
         expected = {
             "reminder_add", "reminder_list", "reminder_complete",
+            "transcribe_audio", "listen_for_wake_word",
             "capture_screen", "capture_camera", "desktop_click", "desktop_type",
             "desktop_screenshot", "start_topic_monitor", "stop_topic_monitor",
             "install_signed_plugin", "list_windows_preferences",
