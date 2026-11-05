@@ -15,6 +15,7 @@ SENSITIVE_SKILLS = frozenset({
     "set_windows_preference",
     "install_signed_plugin",
     "start_topic_monitor",
+    "listen_for_wake_word",
     "write_workspace_file",
     "task_complete",
     "reminder_complete",
