@@ -72,3 +72,14 @@ Install the optional Windows integrations with `python -m pip install -r require
 
 ### Important boundaries
 Gemini Live needs a Live-enabled Google API key and working microphone/speaker drivers. Whisper runs locally but may download large model weights and use significant RAM/CPU. Screen/camera access can expose private information; invoke only when you intend to capture. Desktop clicks/typing affect the active desktop and require explicit confirmation. Topic monitoring runs only after the start skill is called and stops when the process exits. A production hosted plugin marketplace still needs a publisher portal, trusted signing-key distribution/rotation, moderation, update/revocation service, and sandboxed plugin runtime; this repository deliberately does not execute downloaded plugin code automatically.
+
+
+## Desktop HUD tools and voice controls
+Run `python main.py --ui` to open the Tkinter desktop HUD. The HUD now has:
+
+- **Chat tab:** the existing provider-backed chat and persistent conversation history, plus a one-phrase **Voice input** button. Microphone capture starts only after the user presses that button.
+- **Speak replies:** an optional checkbox that sends generated replies to the configured local speech engine. Install `requirements-voice.txt` first; microphone/speaker availability depends on the Windows PC.
+- **Tools tab:** the same allowlisted skill registry used by the CLI, including reminders, workspace file operations, app/web helpers, system status, screen/camera capture, Windows preferences, desktop actions, monitoring and signed-plugin installation.
+- **Per-action approval:** screen/camera capture, desktop input, Windows preference changes, plugin installation, topic-monitor startup and local state-changing actions require a confirmation dialog in the HUD. The existing skill handlers still enforce their own confirmation flags where applicable. A rejected confirmation runs no action.
+
+The Tools tab dispatches only registered skills; it is not a general shell or arbitrary-code console. Optional dependencies, API keys and real Windows hardware are still required for the corresponding integrations. Gemini Live remains available through the explicit `python main.py --live` command; the HUD does not silently start an always-on microphone or camera.
