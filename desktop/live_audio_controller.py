@@ -50,9 +50,9 @@ class LiveAudioController:
                         on_transcript=self.on_transcript,
                     )
                 else:
-                    from realtime.audio_io import run_gemini_live_audio
+                    from realtime.live_audio_runner import run_stoppable_gemini_live_audio
                     asyncio.run(
-                        run_gemini_live_audio(
+                        run_stoppable_gemini_live_audio(
                             self.api_key,
                             on_transcript=self.on_transcript,
                             stop_event=self._stop_event,
