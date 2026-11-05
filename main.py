@@ -15,6 +15,7 @@ from skills.system_monitor import register_monitoring_skill
 from skills.web_search import register_web_search_skill
 from skills.proactive_checks import register_proactive_skills
 from skills.advanced_tools import register_advanced_skills
+from skills.audio_tools import register_audio_skills
 
 SYSTEM_PROMPT = ("You are Shahid Assistant, a helpful Windows desktop assistant. "
                  "Be accurate, concise, and state limitations.")
@@ -28,6 +29,7 @@ def build_registry() -> SkillRegistry:
     register_web_search_skill(registry)
     register_proactive_skills(registry)
     register_advanced_skills(registry)
+    register_audio_skills(registry)
 
     # Expose the same persistent reminder store used by the CLI in every UI surface.
     reminders = ReminderManager()
