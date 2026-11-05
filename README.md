@@ -77,9 +77,9 @@ Gemini Live needs a Live-enabled Google API key and working microphone/speaker d
 ## Desktop HUD tools and voice controls
 Run `python main.py --ui` to open the Tkinter desktop HUD. The HUD now has:
 
-- **Chat tab:** the existing provider-backed chat and persistent conversation history, plus a one-phrase **Voice input** button. Microphone capture starts only after the user presses that button.
+- **Chat area:** the existing provider-backed chat and persistent conversation history, plus a one-phrase **Voice input** button. Microphone capture starts only after the user presses that button.
 - **Speak replies:** an optional checkbox that sends generated replies to the configured local speech engine. Install `requirements-voice.txt` first; microphone/speaker availability depends on the Windows PC.
-- **Tools tab:** the same allowlisted skill registry used by the CLI, including reminders, workspace file operations, app/web helpers, system status, screen/camera capture, Windows preferences, desktop actions, monitoring and signed-plugin installation.
+- **Tools window:** open it from the desktop HUD to access the same allowlisted skill registry used by the CLI, including reminders, workspace file operations, app/web helpers, system status, screen/camera capture, Windows preferences, desktop actions, monitoring and signed-plugin installation.
 - **Whisper transcription:** run `transcribe_audio` with a local `audio_path`; choose a supported model size and optional language code. The local Whisper model may download weights on first use.
 - **Wake-word listening:** run `listen_for_wake_word` for a bounded 1–120 second microphone window. The HUD asks for confirmation first; no background microphone listener is started automatically.
 - **Per-action approval:** screen/camera capture, desktop input, Windows preference changes, plugin installation, topic-monitor startup and local state-changing actions require a confirmation dialog in the HUD. The existing skill handlers still enforce their own confirmation flags where applicable. A rejected confirmation runs no action.
