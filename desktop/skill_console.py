@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import Any
@@ -90,11 +91,31 @@ class SkillConsole(ttk.Frame):
                     return
             self.run_button.configure(state="disabled")
             self.status.configure(text="Running…")
-            result = dispatch_skill(self.registry, name, payload, approved=approved)
-            self._show_result(json.dumps(result, ensure_ascii=False, indent=2, default=str))
-            self.status.configure(text="Completed")
+            threading.Thread(
+                target=self._run_worker,
+                args=(name, payload, approved),
+                name="shahid-skill-runner",
+                daemon=True,
+            ).start()
         except Exception as exc:
             self._show_result(f"{type(exc).__name__}: {exc}")
             self.status.configure(text="Tool failed")
-        finally:
-            self.run_button.configure(state="normal")
+
+    def _run_worker(self, name: str, payload: dict, approved: bool) -> None:
+        try:
+            result = dispatch_skill(self.registry, name, payload, approved=approved)
+            rendered = json.dumps(result, ensure_ascii=False, indent=2, default=str)
+            status = "Completed"
+        except Exception as exc:
+            rendered = f"{type(exc).__name__}: {exc}"
+            status = "Tool failed"
+        try:
+            self.after(0, self._finish_worker, rendered, status)
+        except tk.TclError:
+            # The user may close the tools window while an optional task is running.
+            pass
+
+    def _finish_worker(self, rendered: str, status: str) -> None:
+        self._show_result(rendered)
+        self.status.configure(text=status)
+        self.run_button.configure(state="normal")
