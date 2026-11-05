@@ -44,6 +44,16 @@ async def run_stoppable_gemini_live_audio(
                     server = getattr(response, "server_content", None)
                     if not server:
                         continue
+                    # Gemini Live signals barge-in through server_content.interrupted.
+                    # Abort queued speaker audio immediately so the user's speech
+                    # can take the floor instead of waiting for stale playback.
+                    if getattr(server, "interrupted", False):
+                        await asyncio.to_thread(output_stream.abort)
+                        if not stop_event.is_set():
+                            await asyncio.to_thread(output_stream.start)
+                        if on_transcript:
+                            on_transcript("interrupted", "Playback stopped — listening to you")
+                        continue
                     for field in ("input_transcription", "output_transcription"):
                         item = getattr(server, field, None)
                         value = getattr(item, "text", None) if item else None
