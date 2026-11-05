@@ -68,10 +68,15 @@ class AssistantUI:
         self.live_start_button.pack(side="right", padx=(8, 0))
         self.send_button.configure(command=self.send_with_voice)
         self.input.bind("<Control-Return>", self._send_shortcut)
+        self.input.bind("<Control-Return>", self._send_shortcut_with_voice)
         self._append("assistant", "Ready. Configure .env to connect an AI provider.")
         self._append("assistant", "Gemini Live is manual-start only and asks before microphone access.")
 
     def _send_shortcut(self, _event):
+        self.send()
+        return "break"
+
+    def _send_shortcut_with_voice(self, _event):
         self.send_with_voice()
         return "break"
 
