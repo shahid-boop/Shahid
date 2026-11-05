@@ -28,6 +28,34 @@ def build_registry() -> SkillRegistry:
     register_web_search_skill(registry)
     register_proactive_skills(registry)
     register_advanced_skills(registry)
+
+    # Expose the same persistent reminder store used by the CLI in every UI surface.
+    reminders = ReminderManager()
+
+    def add_reminder(payload):
+        data = payload or {}
+        due_at = data.get("due_at") or None
+        if due_at is not None and not isinstance(due_at, str):
+            raise ValueError("due_at must be an ISO-8601 string.")
+        return reminders.add(str(data.get("text", "")), due_at)
+
+    def list_reminders(payload):
+        data = payload or {}
+        include_done = data.get("include_done", False)
+        if not isinstance(include_done, bool):
+            raise ValueError("include_done must be true or false.")
+        return {"reminders": reminders.list(include_done=include_done)}
+
+    def complete_reminder(payload):
+        data = payload or {}
+        reminder_id = str(data.get("id", "")).strip()
+        if not reminder_id:
+            raise ValueError("A reminder id is required.")
+        return reminders.complete(reminder_id)
+
+    registry.register("reminder_add", add_reminder)
+    registry.register("reminder_list", list_reminders)
+    registry.register("reminder_complete", complete_reminder)
     return registry
 
 def run_chat(voice: bool = False) -> int:
@@ -114,7 +142,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.live:
-            import asyncio, os
+            import asyncio
             from realtime.audio_io import run_gemini_live_audio
             settings = Settings.load()
             asyncio.run(run_gemini_live_audio(settings.google_api_key, on_transcript=lambda kind, value: print(f"\\n{kind}: {value}")))
