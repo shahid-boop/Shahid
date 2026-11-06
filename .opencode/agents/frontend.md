@@ -5,7 +5,20 @@ temperature: 0.2
 permission:
   edit: allow
   bash:
-    "*": ask
+    "*": allow
+    "git push*": deny
+    "git merge*": deny
+    "git reset*": deny
+    "git clean*": deny
+    "git rebase*": deny
+    "git checkout main*": deny
+    "git switch main*": deny
+    "git branch -D*": deny
+    "git branch --delete*": deny
+    "gh pr merge*": deny
+    "rm -rf*": deny
+    "Remove-Item*": deny
+    "del /s*": deny
     "git status*": allow
     "git diff*": allow
     "git diff --check": allow
